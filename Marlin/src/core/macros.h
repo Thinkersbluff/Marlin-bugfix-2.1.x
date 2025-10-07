@@ -212,6 +212,12 @@
 #define ___TERN(P,V...)     THIRD(P,V)              // If first argument has a comma, A. Else B.
 #define IF_DISABLED(O,A)    TERN(O,,A)
 
+// Allow emitting code when an option is enabled: IF_ENABLED(OPTION, code)
+// This is a convenient helper used by some external UI/port code.
+#ifndef IF_ENABLED
+  #define IF_ENABLED(O,A) TERN_(O,A)
+#endif
+
 // "Ternary" that emits or omits the given content
 #define EMIT(V...) V
 #define OMIT(...)
@@ -802,5 +808,7 @@
 #define _UI_RELOADED    105
 #define _UI_IA_CREALITY 106
 #define _UI_E3S1PRO     107
+// Community CR6 UI (CR6_COMM canonical name)
+#define _UI_CR6_COMM 108
 #define _DGUS_UI_IS(N) || (CAT(_UI_, DGUS_LCD_UI) == CAT(_UI_, N))
 #define DGUS_UI_IS(V...) (0 MAP(_DGUS_UI_IS, V))

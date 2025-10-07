@@ -151,6 +151,11 @@ public:
    */
   static bool enqueue_one(FSTR_P const fcmd);
 
+  // Compatibility alias: historical code used enqueue_one_P
+  static bool enqueue_one_P(FSTR_P const fcmd) { return enqueue_one(fcmd); }
+  // Accept plain C string literal too (some legacy code passes a const char*)
+  static bool enqueue_one_P(const char * const cmd) { return enqueue_one(cmd); }
+
   /**
    * Enqueue with Serial Echo
    * Return true on success

@@ -209,6 +209,8 @@ bool GCodeQueue::enqueue_one(FSTR_P const fcmd) {
   return ring_buffer.enqueue(cmd);
 }
 
+// (enqueue_one_P provided inline in queue.h)
+
 /**
  * Enqueue from program memory and return only when commands are actually enqueued
  * Never call this from a G-code handler!

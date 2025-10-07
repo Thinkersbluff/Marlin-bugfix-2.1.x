@@ -764,6 +764,38 @@ public:
     static bool use_click() { return false; }
   #endif
 
+  // Compatibility aliases for external UIs expecting these fields
+  #if !defined(SHOW_REMAINING_TIME)
+    // Some external UI code references ui.remaining_time directly. Provide a shim.
+    static uint32_t remaining_time;
+    static inline uint32_t get_remaining_time() { return remaining_time; }
+    static inline void reset_remaining_time() { remaining_time = 0; }
+  #endif
+
+  #if !defined(HAS_PREHEAT)
+    // Ensure material_preset exists as a minimal buffer to satisfy external UIs.
+    #if !defined(PREHEAT_COUNT)
+      #define PREHEAT_COUNT 1
+    #endif
+    // Define minimal preheat_t matching the real definition so external UIs can access members
+    typedef struct {
+      #if HAS_HOTEND
+        celsius_t hotend_temp;
+      #endif
+      #if HAS_HEATED_BED
+        celsius_t bed_temp;
+      #endif
+      #if HAS_HEATED_CHAMBER
+        celsius_t chamber_temp;
+      #endif
+      #if HAS_FAN
+        uint16_t fan_speed;
+      #endif
+    } preheat_t;
+
+    static preheat_t material_preset[PREHEAT_COUNT];
+  #endif
+
   #if ENABLED(ADVANCED_PAUSE_FEATURE) && ANY(HAS_MARLINUI_MENU, EXTENSIBLE_UI, DWIN_CREALITY_LCD_JYERSUI)
     static void pause_show_message(const PauseMessage message, const PauseMode mode=PAUSE_MODE_SAME, const uint8_t extruder=active_extruder);
   #else

@@ -92,6 +92,8 @@
   #define DGUS_LCD_UI_IA_CREALITY 1
 #elif DGUS_UI_IS(E3S1PRO)
   #define DGUS_LCD_UI_E3S1PRO 1
+#elif DGUS_UI_IS(CR6_COMM)
+  #define DGUS_LCD_UI_CR6_COMM 1
 #endif
 
 /**
