@@ -25,17 +25,35 @@ PGM_P PIDHandler::result_message = nullptr;
 
 void PIDHandler::Init() {
     // Reset
-    cycles = 3;
+    // Default cycles
+    if (DGUSScreenHandler::Settings.pid_cycles != 0) {
+        cycles = DGUSScreenHandler::Settings.pid_cycles;
+    }
+    else {
+        cycles = 3;
+    }
 
-    fan_on = ExtUI::getTargetFan_percent(ExtUI::fan_t::FAN0) > 10;
+    // Default fan preference
+    if (DGUSScreenHandler::Settings.pid_fan_on) {
+        fan_on = DGUSScreenHandler::Settings.pid_fan_on;
+    }
+    else {
+        fan_on = ExtUI::getTargetFan_percent(ExtUI::fan_t::FAN0) > 10;
+    }
 
-    // Use configured PLA temps + 15 degrees when preheat presets are available
-#if HAS_PREHEAT
-    calibration_temperature = ExtUI::getMaterial_preset_E(0) + 15;
-#else
-    // Fallback to the current target hotend temperature if PREHEAT is not enabled
-    calibration_temperature = ExtUI::getTargetTemp_celsius(ExtUI::E0) + 15;
-#endif
+    // Prefer stored PID nozzle calibration temperature if present
+    if (DGUSScreenHandler::Settings.pid_nozzle_calibration_temperature != 0) {
+        calibration_temperature = DGUSScreenHandler::Settings.pid_nozzle_calibration_temperature;
+    }
+    else {
+      // Use configured PLA temps + 15 degrees when preheat presets are available
+      #if HAS_PREHEAT
+        calibration_temperature = ExtUI::getMaterial_preset_E(0) + 15;
+      #else
+        // Fallback to the current target hotend temperature if PREHEAT is not enabled
+        calibration_temperature = ExtUI::getTargetTemp_celsius(ExtUI::E0) + 15;
+      #endif
+    }
 
     // Welcome message
     SetStatusMessage(PSTR("Ready"));

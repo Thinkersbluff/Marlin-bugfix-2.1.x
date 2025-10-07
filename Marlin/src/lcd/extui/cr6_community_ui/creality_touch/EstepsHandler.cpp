@@ -23,6 +23,7 @@ float EstepsHandler::calculated_esteps = 0;
 float EstepsHandler::remaining_filament = 0;
 float EstepsHandler::mark_filament_mm = 0;
 float EstepsHandler::filament_to_extrude = 0;
+// Default calibration temperature: start unset (0). Init() will prefer stored UI setting when available.
 celsius_t EstepsHandler::calibration_temperature = 0;
 
 void EstepsHandler::Init() {
@@ -36,12 +37,19 @@ void EstepsHandler::Init() {
     remaining_filament = 0;
 
     // Use configured PLA temps + 10 degrees when preheat presets are available
-#if HAS_PREHEAT
-    calibration_temperature = ExtUI::getMaterial_preset_E(0) + 10;
-#else
-    // Fallback to the current target hotend temperature if PREHEAT is not enabled
-    calibration_temperature = ExtUI::getTargetTemp_celsius(ExtUI::E0) + 10;
-#endif
+        // Prefer a stored UI-specific calibration temperature if the DGUS screen saved it
+        if (DGUSScreenHandler::Settings.calibration_temperature != 0) {
+                calibration_temperature = DGUSScreenHandler::Settings.calibration_temperature;
+        }
+        else {
+            // Use configured PLA temps + 10 degrees when preheat presets are available
+            #if HAS_PREHEAT
+                calibration_temperature = ExtUI::getMaterial_preset_E(0) + 10;
+            #else
+                // Fallback to the current target hotend temperature if PREHEAT is not enabled
+                calibration_temperature = ExtUI::getTargetTemp_celsius(ExtUI::E0) + 10;
+            #endif
+        }
 
     // Welcome message
     SetStatusMessage(PSTR("Ready"));

@@ -28,6 +28,9 @@
 #include "DGUSDisplay.h"
 #include "DGUSVPVariable.h"
 #include "DGUSDisplayDef.h"
+// Include handlers from creality_touch so we can persist handler state
+#include "creality_touch/EstepsHandler.h"
+#include "creality_touch/PIDHandler.h"
 
 #include "../ui_api.h"
 #include "../../../MarlinCore.h"
@@ -58,7 +61,7 @@ uint16_t DGUSScreenHandler::ConfirmVP;
 #endif
 
 // Storage initialization
-constexpr uint8_t dwin_settings_version = 6; // Increase when properties are added or removed
+constexpr uint8_t dwin_settings_version = 7; // Increased: new PID and ESteps fields added
 creality_dwin_settings_t DGUSScreenHandler::Settings = {.settings_size = sizeof(creality_dwin_settings_t)};
 DGUSLCD_Screens DGUSScreenHandler::current_screen;
 DGUSLCD_Screens DGUSScreenHandler::past_screens[NUM_PAST_SCREENS] = {DGUSLCD_SCREEN_MAIN};
@@ -122,6 +125,13 @@ void DGUSScreenHandler::DefaultSettings() {
   #if ENABLED(LED_COLOR_PRESETS)
   Settings.LastLEDColor = LEDLights::defaultLEDColor;
   #endif
+
+  // Default: unset calibration temperature (0 == unset)
+  Settings.calibration_temperature = 0;
+  // PID defaults: unset so Init() falls back to preheat/defaults
+  Settings.pid_nozzle_calibration_temperature = 0;
+  Settings.pid_cycles = 0;
+  Settings.pid_fan_on = false;
 }
 
 void DGUSScreenHandler::LoadSettings(const char* buff) {
@@ -130,26 +140,33 @@ void DGUSScreenHandler::LoadSettings(const char* buff) {
     "Insufficient space in EEPROM for UI parameters"
   );
 
+  // We'll accept older/smaller saved blobs and migrate them into the current struct.
   creality_dwin_settings_t eepromSettings;
-  memcpy(&eepromSettings, buff, sizeof(creality_dwin_settings_t));
+  // Start with defaults (zero) so missing bytes are sane
+  memset(&eepromSettings, 0, sizeof(eepromSettings));
 
-  // If size is not the same, discard settings
-  if (eepromSettings.settings_size != sizeof(creality_dwin_settings_t)) {
-    SERIAL_ECHOLNPGM("Discarding DWIN LCD setting from EEPROM - size incorrect");
+  // Read header (settings_size + settings_version) first to determine how many bytes were stored
+  const size_t header_bytes = sizeof(eepromSettings.settings_size) + sizeof(eepromSettings.settings_version);
+  memcpy(&eepromSettings, buff, header_bytes);
 
-    ScreenHandler.DefaultSettings();
-    return;
-  } 
-
-  if (eepromSettings.settings_version != dwin_settings_version) {
-    SERIAL_ECHOLNPGM("Discarding DWIN LCD setting from EEPROM - settings version incorrect");
-
+  // Basic sanity checks
+  if (eepromSettings.settings_size == 0 || eepromSettings.settings_size > ExtUI::eeprom_data_size) {
+    SERIAL_ECHOLNPGM("Discarding DWIN LCD setting from EEPROM - size invalid");
     ScreenHandler.DefaultSettings();
     return;
   }
-  
+
+  // Copy as many bytes as the stored size contains (migrate older layouts)
+  const size_t copyBytes = ((size_t)eepromSettings.settings_size < sizeof(creality_dwin_settings_t)) ? (size_t)eepromSettings.settings_size : sizeof(creality_dwin_settings_t);
+  memcpy(&eepromSettings, buff, copyBytes);
+
+  // If version mismatch, just warn but still use what we have (we've migrated fields we know)
+  if (eepromSettings.settings_version != dwin_settings_version) {
+    SERIAL_ECHOLNPGM("Warning: DWIN LCD setting version mismatch - attempting best-effort load");
+  }
+
   // Copy into final location
-  SERIAL_ECHOLNPGM("Loading DWIN LCD setting from EEPROM");
+  SERIAL_ECHOLNPGM("Loading DWIN LCD setting from EEPROM (migrated)");
   memcpy(&Settings, &eepromSettings, sizeof(creality_dwin_settings_t));
 
   // Apply settings
@@ -176,8 +193,19 @@ void DGUSScreenHandler::StoreSettings(char* buff) {
   Settings.LastLEDColor = leds.color;
   #endif
 
+  // Persist current calibration temperature from EstepsHandler (0 == unset)
+  Settings.calibration_temperature = EstepsHandler::calibration_temperature;
+  // Persist runtime PID handler settings (Nozzle PID)
+  Settings.pid_nozzle_calibration_temperature = PIDHandler::calibration_temperature;
+  Settings.pid_cycles = PIDHandler::cycles;
+  Settings.pid_fan_on = PIDHandler::fan_on;
+
+  // Ensure header reflects current struct
+  Settings.settings_size = sizeof(creality_dwin_settings_t);
+  Settings.settings_version = dwin_settings_version;
+
   // Write to buffer
-  SERIAL_ECHOLNPGM("Saving DWIN LCD setting from EEPROM");
+  SERIAL_ECHOLNPGM("Saving DWIN LCD setting to EEPROM");
   memcpy(buff, &Settings, sizeof(creality_dwin_settings_t));
 }
 
@@ -709,6 +737,8 @@ void DGUSScreenHandler::FilamentRunout() {
 
 void DGUSScreenHandler::OnFactoryReset() {
   ScreenHandler.DefaultSettings();
+  // Ensure the default UI settings are persisted to EEPROM so this is a true factory reset
+  ScreenHandler.RequestSaveSettings();
   ScreenHandler.GotoScreen(DGUSLCD_SCREEN_MAIN);
 }
 

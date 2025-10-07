@@ -52,6 +52,15 @@ struct creality_dwin_settings_t {
   #if HAS_COLOR_LEDS_PREFERENCES
   LEDColor LastLEDColor;
   #endif
+  // Calibration temperature for E-steps calibration screen (0 = unset)
+  celsius_t calibration_temperature;
+  // PID-specific settings (Nozzle PID)
+  // calibration temperature for nozzle PID autotune (0 = unset)
+  celsius_t pid_nozzle_calibration_temperature;
+  // number of cycles for PID autotune (0 = unset -> use default)
+  uint16_t pid_cycles;
+  // fan on/off preference during PID autotune
+  bool pid_fan_on;
 };
 
 class DGUSScreenHandler {
