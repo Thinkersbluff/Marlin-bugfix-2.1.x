@@ -22,6 +22,7 @@ namespace ExtUI {
     // handler is used separately; keep this no-op to be safe.
   }
 
+  #if !ENABLED(DGUS_LCD_UI_CR6_COMM)
   void onLevelingStart() {
     #if HAS_MESH
       // If the CR6 code provides a mesh-leveling start hook, call it.
@@ -31,8 +32,9 @@ namespace ExtUI {
   }
 
   void onLevelingDone() { /* no-op */ }
+  #endif
 
-  void onHomingDone() { /* no-op */ }
+  
 
   void onSetMinExtrusionTemp(const celsius_t t) { (void)t; }
 

@@ -789,6 +789,9 @@ void DGUSScreenHandler::OnHomingStart() {
 }
 
 void DGUSScreenHandler::OnHomingComplete() {
+  SERIAL_ECHOLNPGM("DGUSScreenHandler::OnHomingComplete called");
+  SERIAL_ECHOLNPAIR(" current_screen=", ScreenHandler.getCurrentScreen());
+  SERIAL_ECHOLNPAIR(" past_screens[0]=", ScreenHandler.past_screens[0]);
   ScreenHandler.SetSynchronousOperationFinish();
   ScreenHandler.PopToOldScreen();
 }

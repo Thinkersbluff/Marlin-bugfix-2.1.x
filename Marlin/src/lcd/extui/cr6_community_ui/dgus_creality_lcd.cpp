@@ -164,6 +164,31 @@ bool hasPrintTimer = false;
   }
 
   void onHomingComplete() {
+    SERIAL_ECHOLNPGM("ExtUI::onHomingComplete invoked");
+    ScreenHandler.OnHomingComplete();
+  }
+
+  // Ensure the DGUS UI receives generic leveling start/done events so the
+  // screen handler can present the mesh capture UI and update points live.
+  void onLevelingStart() {
+    SERIAL_ECHOLNPGM("ExtUI::onLevelingStart invoked - forwarding to OnMeshLevelingStart");
+    ScreenHandler.OnMeshLevelingStart();
+  }
+
+  void onLevelingDone() {
+    SERIAL_ECHOLNPGM("ExtUI::onLevelingDone invoked - finishing mesh UI");
+    // There is no explicit OnMeshLevelingFinish() in the handler; use the
+    // existing logic that finishes when the last point is captured. If the
+    // handler needs an explicit finish action, PopToOldScreen() is safe here.
+    ScreenHandler.PopToOldScreen();
+  }
+
+  // The core ExtUI API expects onHomingDone(). Some older CR6 code used
+  // the name onHomingComplete(). Provide the correctly-named symbol so the
+  // G28 homing code (which calls ExtUI::onHomingDone()) invokes the DGUS
+  // handler. Keep the legacy name as well for compatibility.
+  void onHomingDone() {
+    SERIAL_ECHOLNPGM("ExtUI::onHomingDone invoked (forwarding to OnHomingComplete)");
     ScreenHandler.OnHomingComplete();
   }
 

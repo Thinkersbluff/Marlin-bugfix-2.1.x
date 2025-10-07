@@ -749,7 +749,7 @@ bool Probe::probe_down_to_z(const float z, const feedRate_t fr_mm_s) {
       }
     #endif
 
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Taring probe");
+  SERIAL_ECHOLNPGM("Taring probe");
     WRITE(PROBE_TARE_PIN, PROBE_TARE_STATE);
     delay(PROBE_TARE_TIME);
     WRITE(PROBE_TARE_PIN, !PROBE_TARE_STATE);
@@ -1031,7 +1031,18 @@ float Probe::probe_at_point(
       if (bltouch.triggered()) bltouch._reset();
     #endif
 
-    measured_z = deploy() ? NAN : run_z_probe(sanity_check, z_min_point, z_clearance) + offset.z;
+    // Debug: capture deploy() result and probe trigger state to diagnose failures
+    {
+      const bool did_deploy = deploy();
+      #if ENABLED(BLTOUCH)
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLN("Probe deploy() returned:", did_deploy);
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLN("BLTouch triggered:", bltouch.triggered());
+      #else
+        if (DEBUGGING(LEVELING)) SERIAL_ECHOLN("Probe deploy() returned:", did_deploy);
+      #endif
+
+      measured_z = did_deploy ? NAN : run_z_probe(sanity_check, z_min_point, z_clearance) + offset.z;
+    }
 
     // Deploy succeeded and a successful measurement was done.
     // Raise and/or stow the probe depending on 'raise_after' and settings.
@@ -1056,8 +1067,10 @@ float Probe::probe_at_point(
       // Something definitely went wrong at this point, so it might be a good idea to release the steppers.
       // The user may want to quickly move the carriage or bed by hand to avoid bed damage from the (hot) nozzle.
       // This would also benefit from the contemplated "Audio Alerts" feature.
-      stow();
-      LCD_MESSAGE(MSG_LCD_PROBING_FAILED);
+  stow();
+  SERIAL_ECHOLN("Probe failed at XY:", rx, ",", ry);
+  SERIAL_ECHOLN(" current_position.z:", current_position.z);
+  LCD_MESSAGE(MSG_LCD_PROBING_FAILED);
       #if DISABLED(G29_RETRY_AND_RECOVER)
         SERIAL_ERROR_MSG(STR_ERR_PROBING_FAILED);
       #endif
