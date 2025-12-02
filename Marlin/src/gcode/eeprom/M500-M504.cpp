@@ -23,6 +23,7 @@
 #include "../gcode.h"
 #include "../../module/settings.h"
 #include "../../inc/MarlinConfig.h"
+#include "../../module/probe.h"
 
 #if ENABLED(CONFIGURATION_EMBEDDING)
   #include "../../sd/cardreader.h"
@@ -33,14 +34,38 @@
  * M500: Store settings in EEPROM
  */
 void GcodeSuite::M500() {
-  (void)settings.save();
+  const bool ok = settings.save();
+  SERIAL_ECHO_START(); SERIAL_ECHOPGM("M500: "); SERIAL_ECHOLN(ok ? "EEPROM saved" : "EEPROM save FAILED");
+
+  // Report which EEPROM backend is compiled in
+  SERIAL_ECHO_START(); SERIAL_ECHOPGM("EEPROM backend: ");
+  #if ENABLED(FLASH_EEPROM_EMULATION)
+    SERIAL_ECHOLNPGM("FLASH_EEPROM_EMULATION");
+  #elif ENABLED(SDCARD_EEPROM_EMULATION)
+    SERIAL_ECHOLNPGM("SDCARD_EEPROM_EMULATION");
+  #elif ENABLED(SRAM_EEPROM_EMULATION)
+    SERIAL_ECHOLNPGM("SRAM_EEPROM_EMULATION");
+  #elif ENABLED(IIC_BL24CXX_EEPROM)
+    SERIAL_ECHOLNPGM("IIC_BL24CXX_EEPROM (I2C)");
+  #elif ENABLED(I2C_EEPROM)
+    SERIAL_ECHOLNPGM("I2C_EEPROM (generic)");
+  #elif ENABLED(SPI_EEPROM)
+    SERIAL_ECHOLNPGM("SPI_EEPROM");
+  #elif ENABLED(QSPI_EEPROM)
+    SERIAL_ECHOLNPGM("QSPI_EEPROM");
+  #elif ENABLED(USE_FALLBACK_EEPROM)
+    SERIAL_ECHOLNPGM("FALLBACK EEPROM (none)");
+  #else
+    SERIAL_ECHOLNPGM("(unknown)");
+  #endif
 }
 
 /**
  * M501: Read settings from EEPROM
  */
 void GcodeSuite::M501() {
-  (void)settings.load();
+  const bool ok = settings.load();
+  SERIAL_ECHO_START(); SERIAL_ECHOPGM("M501: "); SERIAL_ECHOLN(ok ? "EEPROM loaded" : "EEPROM load FAILED");
 }
 
 /**
@@ -62,6 +87,17 @@ void GcodeSuite::M502() {
    */
   void GcodeSuite::M503() {
     (void)settings.report(!parser.boolval('S', true));
+    
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      // Report M905 parameters with a clear labeled header
+      SERIAL_ECHO_START(); SERIAL_ECHOLNPGM("; Probe Activation Calibration;");
+      // Simplified, single-line M905 entry with space after the colon
+      SERIAL_ECHO_START(); SERIAL_ECHOLNPGM(
+        " M905 Z", p_float_t(probe.probe_en_off_height, 2),
+        " M", p_float_t(MarlinSettings::get_probe_en_off_margin(), 0),
+        " S", MarlinSettings::get_m905_step_settle_ms()
+      );
+    #endif
 
     #if ENABLED(CONFIGURATION_EMBEDDING)
       if (parser.seen_test('C')) {
