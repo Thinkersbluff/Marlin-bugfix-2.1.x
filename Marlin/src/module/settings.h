@@ -42,6 +42,7 @@
 class MarlinSettings {
   public:
     static uint16_t datasize();
+    static uint16_t eeprom_offset();
 
     static void reset();
     static bool save();    // Return 'true' if data was saved
@@ -76,6 +77,9 @@ class MarlinSettings {
       static bool validate();  // Return 'true' if EEPROM data is ok
 
       static EEPROM_Error check_version();
+
+      // Print compiled EEPROM offsets for SettingsData fields (debug)
+      static void print_offsets();
 
       static void first_load() {
         static bool loaded = false;

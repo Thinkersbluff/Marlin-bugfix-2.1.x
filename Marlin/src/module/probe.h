@@ -87,6 +87,10 @@ public:
 
     static xyz_pos_t offset;
 
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      static float probe_en_off_height;  // Runtime calibrated value from M905
+    #endif
+
     #if ANY(PREHEAT_BEFORE_PROBING, PREHEAT_BEFORE_LEVELING)
       static void preheat_for_probing(const celsius_t hotend_temp, const celsius_t bed_temp, const bool early=false);
     #endif

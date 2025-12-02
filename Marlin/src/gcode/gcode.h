@@ -1118,6 +1118,8 @@ private:
   #endif
   #if ENABLED(EEPROM_SETTINGS)
     static void M504();
+    static void M525();
+    static void M526();
   #endif
 
   #if ENABLED(PASSWORD_FEATURE)

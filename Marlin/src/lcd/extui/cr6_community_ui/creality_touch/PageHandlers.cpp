@@ -149,17 +149,11 @@ void LevelingModeHandler(DGUS_VP_Variable &var, unsigned short buttonValue) {
                 break;
 
                 case 2:
-                    // Increase Z-offset
-                    ExtUI::smartAdjustAxis_steps(ExtUI::mmToWholeSteps(0.01, ExtUI::axis_t::Z), ExtUI::axis_t::Z, true);;
-                    ScreenHandler.ForceCompleteUpdate();
-                    ScreenHandler.RequestSaveSettings();
+                            ScreenHandler.setstatusmessagePGM(PSTR("Use Calibrate Probe screen to set Z-Offset"));
                     break;
 
                 case 3:
-                    // Decrease Z-offset
-                    ExtUI::smartAdjustAxis_steps(ExtUI::mmToWholeSteps(-0.01, ExtUI::axis_t::Z), ExtUI::axis_t::Z, true);;
-                    ScreenHandler.ForceCompleteUpdate();
-                    ScreenHandler.RequestSaveSettings();
+                            ScreenHandler.setstatusmessagePGM(PSTR("Use Calibrate Probe screen to set Z-Offset"));
                     break;
             }
 
@@ -192,6 +186,48 @@ void LevelingModeHandler(DGUS_VP_Variable &var, unsigned short buttonValue) {
 #endif
             dgusdisplay.WriteVariable(VP_MESH_SCREEN_MESSAGE_ICON, static_cast<uint16_t>(MESH_SCREEN_MESSAGE_ICON_LEVELING));
             ScreenHandler.GotoScreen(DGUSLCD_SCREEN_LEVELING);
+            break;
+    }
+}
+
+void CalibrateProbeHandler(DGUS_VP_Variable &var, unsigned short buttonValue) {
+    switch (var.VP) {
+        case VP_BUTTON_MOVEKEY:
+            // Home when HOME value pressed (same as movement screen)
+            if (buttonValue == 4) {
+                ExtUI::injectCommands_P("G28");
+            }
+            break;
+
+        case VP_BUTTON_BEDLEVELKEY:
+            // Z-Offset controls moved here: GoTo_Z=0.0 (1), Z+/UP (2), Z-/DOWN (3)
+            switch (buttonValue) {
+                case 1: // Go to Z=0.0
+                    queue.enqueue_one_P("G0 Z0");
+                    break;
+                case 2: // Z + (up)
+                    ExtUI::smartAdjustAxis_steps(ExtUI::mmToWholeSteps(0.01, ExtUI::axis_t::Z), ExtUI::axis_t::Z, true);
+                    ScreenHandler.ForceCompleteUpdate();
+                    ScreenHandler.RequestSaveSettings();
+                    break;
+                case 3: // Z - (down)
+                    ExtUI::smartAdjustAxis_steps(ExtUI::mmToWholeSteps(-0.01, ExtUI::axis_t::Z), ExtUI::axis_t::Z, true);
+                    ScreenHandler.ForceCompleteUpdate();
+                    ScreenHandler.RequestSaveSettings();
+                    break;
+            }
+            break;
+
+        case VP_CALIBRATE_SAVE:
+            if (buttonValue == 1) {
+                ExtUI::injectCommands_P("M500");
+            }
+            break;
+
+        case VP_SAFE_TARE_TEST:
+            if (buttonValue == 1) {
+                ExtUI::injectCommands_P("M905");
+            }
             break;
     }
 }
@@ -626,7 +662,7 @@ const struct PageHandler PageHandlers[] PROGMEM = {
 
     PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_SETUP, SetupMenuHandler)
 
-    PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_ZOFFSET_LEVEL, LevelingModeHandler)
+    PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_ABL, LevelingModeHandler)
     PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_LEVELING, LevelingHandler)
 
     PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_TEMP, TempMenuHandler)
@@ -650,29 +686,30 @@ const struct PageHandler PageHandlers[] PROGMEM = {
 
 
     PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_PREPARE, PrepareMenuHandler)
+    PAGE_HANDLER(DGUSLCD_Screens::DGUSLCD_SCREEN_CALIBRATE_PROBE, CalibrateProbeHandler)
 
     // Terminating
     PAGE_HANDLER(static_cast<DGUSLCD_Screens>(0) ,0)
 };
 
 void DGUSCrealityDisplay_HandleReturnKeyEvent(DGUS_VP_Variable &var, void *val_ptr) {
-  const struct PageHandler *map = PageHandlers;
-  const uint16_t *ret;
-  const DGUSLCD_Screens current_screen = DGUSScreenHandler::getCurrentScreen();
+    const struct PageHandler *map = PageHandlers;
+    const uint16_t *ret;
+    const DGUSLCD_Screens current_screen = DGUSScreenHandler::getCurrentScreen();
 
-  while ((ret = (uint16_t*) pgm_read_ptr(&(map->Handler)))) {
-    if ((map->ScreenID) == current_screen) {
-        uint16_t button_value = uInt16Value(val_ptr);
+    while ((ret = (uint16_t*) pgm_read_ptr(&(map->Handler)))) {
+        if ((map->ScreenID) == current_screen) {
+                uint16_t button_value = uInt16Value(val_ptr);
         
-        SERIAL_ECHOPAIR("Invoking handler for screen ", current_screen);
-        SERIAL_ECHOLNPAIR("with VP=", var.VP, " value=", button_value);
+                SERIAL_ECHOPAIR("Invoking handler for screen ", current_screen);
+                SERIAL_ECHOLNPAIR("with VP=", var.VP, " value=", button_value);
 
-        map->Handler(var, button_value);
-        return;
+                map->Handler(var, button_value);
+                return;
+        }
+
+        map++;
     }
-
-    map++;
-  }
 }
 
 #endif

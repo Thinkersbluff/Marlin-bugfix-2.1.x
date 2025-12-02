@@ -141,6 +141,26 @@ void DGUSScreenHandler::PostDelayedStatusMessage_P(PGM_P msg, uint32_t delay_ms)
   delayed_status_until = millis() + delay_ms;
 }
 
+// Send the calibrated probe enable-off height (mm) to the display scaled to 2 decimals
+void DGUSScreenHandler::DGUSLCD_SendProbeOffAt(DGUS_VP_Variable &var) {
+  // Read runtime value from MarlinSettings and send scaled integer (2 decimals)
+  const float v = MarlinSettings::get_probe_en_off_height();
+  // Debug: print the runtime probe enable-off height so we can verify
+  // the value seen by the display handler during runtime.
+  #if ENABLED(DEBUG_DGUSLCD)
+    SERIAL_ECHOLNPGM("DGUSLCD_SendProbeOffAt: probe_en_off_height = ", v);
+  #endif
+  double d = static_cast<double>(v) * cpow(10, 2);
+  long roundedValue = static_cast<long>(round(d));
+
+  // The display expects a 16-bit word. Clamp to uint16_t range and
+  // send using the 16-bit overload so exactly two bytes are transmitted.
+  if (roundedValue < 0) roundedValue = 0;
+  else if (roundedValue > static_cast<long>(UINT16_MAX)) roundedValue = static_cast<long>(UINT16_MAX);
+
+  dgusdisplay.WriteVariable(var.VP, static_cast<uint16_t>(roundedValue));
+}
+
 static_assert(GRID_MAX_POINTS_X == GRID_MAX_POINTS_Y, "Assuming bed leveling points is square");
 
 constexpr uint16_t SkipMeshPoint = GRID_MAX_POINTS_X > MESH_LEVEL_EDGE_MAX_POINTS ? ((GRID_MAX_POINTS_X - 1) / (GRID_MAX_POINTS_X - MESH_LEVEL_EDGE_MAX_POINTS)) : 1;
@@ -1192,7 +1212,7 @@ void DGUSScreenHandler::OnMeshLevelingUpdate(const int8_t x, const int8_t y, con
 
     RequestSaveSettings();
     
-    if (GetPreviousScreen() == DGUSLCD_SCREEN_ZOFFSET_LEVEL) {
+    if (GetPreviousScreen() == DGUSLCD_SCREEN_ABL) {
       // If the user is in the leveling workflow (not printing), get that hotend out of the way
       char gcodeBuffer[50] = {0};
       sprintf_P(gcodeBuffer, PSTR("G0 F3500 X%d\nG0 Y%d\nG0 Z%d\nM84"), (X_BED_SIZE / 2), (Y_BED_SIZE / 2), 35);
@@ -1608,8 +1628,38 @@ void DGUSScreenHandler::HandleFanSpeedChanged(DGUS_VP_Variable &var, void *val_p
     
     SERIAL_ECHOLNPAIR("Fan speed changed: ", newValue);
     ExtUI::setTargetFan_percent(newValue, ExtUI::fan_t::FAN0);
-
     ScreenHandler.skipVP = var.VP; // don't overwrite value the next update time as the display might autoincrement in parallel
+
+}
+
+void DGUSScreenHandler::HandleParkNozzle(DGUS_VP_Variable &var, void *val_ptr) {
+  // The display sends a 16-bit value. Treat any non-zero as a press.
+  uint16_t val = swap16(*(uint16_t*)val_ptr);
+  if (!val) return;
+
+  // Use G27 P3 to establish the parking Z, then move to the requested
+  // corner at that Z. Payload 0x0001 -> front-left, 0x0002 -> rear-left.
+  // Read configured nozzle park point so we can reuse its Z value
+  xyz_pos_t parkpt = NOZZLE_PARK_POINT;
+  int park_z = (int)parkpt.z;
+  // NOZZLE_PARK_Z_FEEDRATE and NOZZLE_PARK_XY_FEEDRATE are defined in mm/s;
+  // G-code feedrates expect mm/min. Scale them before injecting into G-code.
+  const int park_z_feed_mm_per_min = (int)round((double)NOZZLE_PARK_Z_FEEDRATE * 60.0);
+  const int park_xy_feed_mm_per_min = (int)round((double)NOZZLE_PARK_XY_FEEDRATE * 60.0);
+  char buf[128];
+  if (val == 0x0001) {
+    // Front-left
+    snprintf(buf, sizeof(buf), "G27 P3\nG1 X%d Y%d F%d\nG1 Z%d F%d", X_MIN_POS, Y_MIN_POS, park_xy_feed_mm_per_min, park_z, park_z_feed_mm_per_min);
+  } else if (val == 0x0002) {
+    // Rear-left
+    snprintf(buf, sizeof(buf), "G27 P3\nG1 X%d Y%d F%d\nG1 Z%d F%d", X_MIN_POS, Y_MAX_POS, park_xy_feed_mm_per_min, park_z, park_z_feed_mm_per_min);
+  } else {
+    // Unknown payload: fall back to G27 P3
+    snprintf(buf, sizeof(buf), "G27 P3\nG1 Z%d F%d", park_z, park_z_feed_mm_per_min);
+  }
+  ExtUI::injectCommands(buf);
+  // Give a short status message so the user sees the action.
+  ScreenHandler.setstatusmessage("Parking nozzle");
 }
 
 void DGUSScreenHandler::HandleFlowRateChanged(DGUS_VP_Variable &var, void *val_ptr) {
@@ -2085,8 +2135,14 @@ void DGUSScreenHandler::OnBackButton(DGUS_VP_Variable &var, void *val_ptr) {
 
 void DGUSScreenHandler::UpdateScreenVPData() {
   if (!dgusdisplay.isInitialized()) {
+    SERIAL_ECHOLNPGM("DGUS: display not initialized; skipping VP update loop");
     return;
   }
+
+  // Diagnostic: always print current screen and that we're entering the VP update loop
+  #if ENABLED(DEBUG_DGUSLCD)
+    SERIAL_ECHOLNPAIR("DGUS: UpdateScreenVPData on screen", current_screen);
+  #endif
 
   //DEBUG_ECHOPAIR(" UpdateScreenVPData Screen: ", current_screen);
 
@@ -2103,10 +2159,14 @@ void DGUSScreenHandler::UpdateScreenVPData() {
   bool sent_one = false;
   do {
     uint16_t VP = pgm_read_word(VPList);
-    DEBUG_ECHOPAIR(" VP: ", VP);
+    #if ENABLED(DEBUG_DGUSLCD)
+      SERIAL_ECHOPAIR("DGUS: considering VP", VP);
+    #endif
     if (!VP) {
       update_ptr = 0;
-      DEBUG_ECHOLNPGM(" UpdateScreenVPData done");
+      #if ENABLED(DEBUG_DGUSLCD)
+        SERIAL_ECHOLNPGM("DGUS: UpdateScreenVPData done");
+      #endif
       ScreenComplete = true;
       return;  // Screen completed.
     }
@@ -2115,22 +2175,40 @@ void DGUSScreenHandler::UpdateScreenVPData() {
 
     DGUS_VP_Variable rcpy;
     if (populate_VPVar(VP, &rcpy)) {
+      #if ENABLED(DEBUG_DGUSLCD)
+        SERIAL_ECHOLNPAIR("DGUS: populate_VPVar found VP", VP);
+        SERIAL_ECHOLNPAIR("DGUS: VP size", rcpy.size);
+      #endif
       uint8_t expected_tx = 6 + rcpy.size;  // expected overhead is 6 bytes + payload.
       // Send the VP to the display, but try to avoid overrunning the Tx Buffer.
       // But send at least one VP, to avoid getting stalled.
-      if (rcpy.send_to_display_handler && (!sent_one || expected_tx <= dgusdisplay.GetFreeTxBuffer())) {
-        DEBUG_ECHOPAIR(" calling handler for ", rcpy.VP);
-        sent_one = true;
-        rcpy.send_to_display_handler(rcpy);
+      if (rcpy.send_to_display_handler) {
+        if (!sent_one || expected_tx <= dgusdisplay.GetFreeTxBuffer()) {
+          #if ENABLED(DEBUG_DGUSLCD)
+            SERIAL_ECHOLNPAIR("DGUS: calling handler for VP", rcpy.VP);
+          #endif
+          sent_one = true;
+          rcpy.send_to_display_handler(rcpy);
+        }
+        else {
+          auto x = dgusdisplay.GetFreeTxBuffer();
+          #if ENABLED(DEBUG_DGUSLCD)
+            SERIAL_ECHOLNPAIR("DGUS: tx almost full: ", x);
+          #endif
+          UNUSED(x);
+          ScreenComplete = false;
+          return;  // please call again!
+        }
       }
       else {
-        auto x = dgusdisplay.GetFreeTxBuffer();
-        DEBUG_ECHOLNPAIR(" tx almost full: ", x);
-        UNUSED(x);
-        //DEBUG_ECHOPAIR(" update_ptr ", update_ptr);
-        ScreenComplete = false;
-        return;  // please call again!
+        // No send handler for this VP; skip and continue to next VP.
+        #if ENABLED(DEBUG_DGUSLCD)
+          SERIAL_ECHOLNPAIR("DGUS: no send_to_display_handler for VP", rcpy.VP);
+        #endif
       }
+    }
+    else {
+      SERIAL_ECHOLNPAIR("DGUS: populate_VPVar NOT found VP", VP);
     }
 
   } while (++update_ptr, ++VPList, true);

@@ -132,6 +132,10 @@ Probe probe;
 
 xyz_pos_t Probe::offset; // Initialized by settings.load
 
+#if ENABLED(PROBE_ACTIVATION_SWITCH)
+  float Probe::probe_en_off_height = PROBE_EN_OFF_HEIGHT_DEFAULT;
+#endif
+
 #if HAS_PROBE_XY_OFFSET
   const xy_pos_t &Probe::offset_xy = Probe::offset;
 #else
@@ -794,7 +798,9 @@ bool Probe::probe_down_to_z(const float z, const feedRate_t fr_mm_s) {
   uint8_t dbg_trigger_head_before = 0, dbg_trigger_tail_before = 0;
   Endstops::peek_trigger_log_bounds(dbg_trigger_head_before, dbg_trigger_tail_before);
   do_blocking_move_to_z(z, fr_mm_s);
+#if ENABLED(DEBUG_LEVELING_FEATURE)
   const uint32_t dbg_t_post_blocking = millis();
+#endif
   SERIAL_ECHOLNPGM("DBG_PROBE: blocking Z move returned");
 
   // Compact timing comparison: show pre/post sample times and any ISR trigger entries
@@ -875,6 +881,12 @@ bool Probe::probe_down_to_z(const float z, const feedRate_t fr_mm_s) {
       TEST(endstops.trigger_state(), Z_MIN_PROBE)
     #endif
   );
+  // If a probe activation switch is present, consider it as an alternate
+  // trigger source so that switching the activation pin during descent
+  // will be treated as a valid probe trigger.
+  #if ENABLED(PROBE_ACTIVATION_SWITCH)
+    probe_triggered = probe_triggered || endstops.probe_switch_activated();
+  #endif
 
   // If a trigger was detected, perform a very short re-check to filter single-sample glitches
   if (probe_triggered) {
@@ -886,9 +898,23 @@ bool Probe::probe_down_to_z(const float z, const feedRate_t fr_mm_s) {
         TEST(endstops.trigger_state(), Z_MIN_PROBE)
       #endif
     );
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      const bool act_after = endstops.probe_switch_activated();
+      // Include activation pin in the debounce re-check
+      const bool probe_triggered2_final = probe_triggered2 || act_after;
+    #else
+      const bool probe_triggered2_final = probe_triggered2;
+    #endif
     if (!probe_triggered2) {
-      SERIAL_ECHOLNPGM("DBG_PROBE: transient probe trigger ignored");
-      probe_triggered = false;
+      #if ENABLED(PROBE_ACTIVATION_SWITCH)
+        if (probe_triggered2_final) {
+          SERIAL_ECHOLNPGM("DBG_PROBE: activation pin confirmed trigger during debounce");
+        }
+      #endif
+      if (!probe_triggered2_final) {
+        SERIAL_ECHOLNPGM("DBG_PROBE: transient probe trigger ignored");
+        probe_triggered = false;
+      }
     }
     else {
       SERIAL_ECHOLNPGM("DBG_PROBE: probe trigger confirmed");
@@ -905,11 +931,22 @@ bool Probe::probe_down_to_z(const float z, const feedRate_t fr_mm_s) {
   #endif
 
   // Unconditional debug (always print) to ensure probe/activation state is visible
-  SERIAL_ECHOLNPGM("DBG_PROBE: activation_before:", activation_before ? 1 : 0,
-                   " activation_after:", endstops.probe_switch_activated() ? 1 : 0,
-                   " probe_triggered:", probe_triggered ? 1 : 0,
-                   " trigger_state:", int(endstops.trigger_state()),
-                   " current_z:", current_position.z);
+  #if ENABLED(PROBE_ACTIVATION_SWITCH)
+    const bool act_raw_now = READ(PROBE_ACTIVATION_SWITCH_PIN);
+    SERIAL_ECHOLNPGM("DBG_PROBE: activation_before:", activation_before ? 1 : 0,
+                     " act_raw_now:", act_raw_now ? 1 : 0,
+                     " config_state:", PROBE_ACTIVATION_SWITCH_STATE ? 1 : 0,
+                     " activation_after:", endstops.probe_switch_activated() ? 1 : 0,
+                     " probe_triggered:", probe_triggered ? 1 : 0,
+                     " trigger_state:", int(endstops.trigger_state()),
+                     " current_z:", current_position.z);
+  #else
+    SERIAL_ECHOLNPGM("DBG_PROBE: activation_before:", activation_before ? 1 : 0,
+                     " activation_after:", endstops.probe_switch_activated() ? 1 : 0,
+                     " probe_triggered:", probe_triggered ? 1 : 0,
+                     " trigger_state:", int(endstops.trigger_state()),
+                     " current_z:", current_position.z);
+  #endif
 
   // Offset sensorless probing
   #if HAS_DELTA_SENSORLESS_PROBING
@@ -1083,8 +1120,11 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const float z_min_poi
       DEBUG_ECHOLNPGM("> try_to_probe(..., ", z_probe_low_point, ", ", fr_mm_s, ", ...)");
     }
 
-    // Tare the probe, if supported
-    if (TERN0(PROBE_TARE, tare())) return true;
+    // No pre-raise here: first probe attempt should already start at penh
+    // when configured. Tare is handled by the caller.
+
+    // Tare the probe is handled by the caller to avoid repeated taring
+    // when multiple probe attempts are made (e.g., repeated slow probes).
 
     // Do a first probe at the fast speed
     const bool probe_fail = probe_down_to_z(z_probe_low_point, fr_mm_s),              // No probe trigger?
@@ -1109,18 +1149,69 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const float z_min_poi
   // Double-probing does a fast probe followed by a slow probe
   #if TOTAL_PROBING == 2
 
-    // Attempt to tare the probe
-    if (TERN0(PROBE_TARE, tare())) return NAN;
 
-    // Do a first probe at the fast speed
-    if (try_to_probe(PSTR("FAST"), z_probe_low_point, z_probe_fast_mm_s, sanity_check)) return NAN;
+    // Do a first probe at the fast speed. If the fast pass does not trigger
+    // (e.g. because we stop at the enable-off height), continue to the slow
+    // pass instead of aborting immediately. Only an early trigger (too high)
+    // is treated as a fatal error.
+    bool fast_probe_failed = false;
+    {
+      float fast_z = z_probe_low_point;
+      #if ALL(PROBE_ACTIVATION_SWITCH, PROBE_TARE_ONLY_WHILE_INACTIVE)
+        const float penh = MarlinSettings::get_probe_en_off_height();
+        if (penh > 0.0f) fast_z = penh;
+      #endif
 
-    const float z1 = DIFF_TERN(HAS_DELTA_SENSORLESS_PROBING, current_position.z, largest_sensorless_adj);
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("1st Probe Z:", z1);
+      // Perform the fast descent. probe_down_to_z() returns TRUE on error/no-trigger.
+      fast_probe_failed = probe_down_to_z(fast_z, z_probe_fast_mm_s);
 
-    // Raise to give the probe clearance
-    const float clearance_needed = probe_safe_clearance_for_z(Z_CLEARANCE_MULTI_PROBE);
-    do_z_clearance(z1 + clearance_needed, true);
+      // If fast pass triggered, check for an 'early' (too-high) trigger
+      if (!fast_probe_failed) {
+        constexpr float error_tolerance = Z_PROBE_ERROR_TOLERANCE;
+        const bool early_fail = (sanity_check && current_position.z > zoffs + error_tolerance);
+        if (early_fail) {
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+            if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("FAST Probe triggered too high");
+          #endif
+          return NAN;
+        }
+      }
+      else {
+        // Fast pass did not trigger. Continue to the slow probe below.
+        SERIAL_ECHOLNPGM("DBG_PROBE: fast pass did not trigger, continuing to slow pass");
+      }
+    }
+
+    const bool fast_triggered = !fast_probe_failed;
+    float z1 = NAN;
+    if (fast_triggered) {
+      z1 = DIFF_TERN(HAS_DELTA_SENSORLESS_PROBING, current_position.z, largest_sensorless_adj);
+      if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("1st Probe Z:", z1);
+
+      // Raise to give the probe clearance
+      const float clearance_needed = probe_safe_clearance_for_z(Z_CLEARANCE_MULTI_PROBE);
+      do_z_clearance(z1 + clearance_needed, true);
+    }
+
+    // If the fast pass did not trigger, perform two slow probes so we still
+    // obtain the programmed number of triggered measurements (TOTAL_PROBING).
+    if (!fast_triggered) {
+      // Perform MULTIPLE_PROBING slow probes and average the results so that
+      // we always collect the configured number of triggered samples.
+      constexpr int nprobes = MULTIPLE_PROBING;
+      float probes_local[nprobes];
+      for (int i = 0; i < nprobes; ++i) {
+        if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Slow Probe (", i + 1, " of ", nprobes, " due to fast fail):");
+        if (try_to_probe(PSTR("SLOW"), z_probe_low_point, z_probe_slow_mm_s, sanity_check)) return NAN;
+        probes_local[i] = DIFF_TERN(HAS_DELTA_SENSORLESS_PROBING, current_position.z, largest_sensorless_adj);
+        if (i < nprobes - 1) do_z_clearance(probes_local[i] + (Z_CLEARANCE_MULTI_PROBE), false);
+      }
+
+      float sum = 0.0f;
+      for (int i = 0; i < nprobes; ++i) sum += probes_local[i];
+      const float measured_z = sum / float(nprobes);
+      return DIFF_TERN(HAS_HOTEND_OFFSET, measured_z, hotend_offset[active_extruder].z);
+    }
 
   #elif Z_PROBE_FEEDRATE_FAST != Z_PROBE_FEEDRATE_SLOW
 
@@ -1128,8 +1219,16 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const float z_min_poi
     // move down quickly before doing the slow probe
     const float z = (Z_CLEARANCE_DEPLOY_PROBE) + 5.0f + _MAX(zoffs, 0.0f);
     if (current_position.z > z) {
+      // Compute fast-descent target; when PROBE_TARE_ONLY_WHILE_INACTIVE is
+      // enabled prefer the saved enable-off height so the fast pass does not
+      // descend beyond it.
+      float fast_z = z;
+      #if ALL(PROBE_ACTIVATION_SWITCH, PROBE_TARE_ONLY_WHILE_INACTIVE)
+        const float penh = MarlinSettings::get_probe_en_off_height();
+        if (penh > 0.0f) fast_z = penh;
+      #endif
       // Probe down fast. If the probe never triggered, raise for probe clearance
-      if (!probe_down_to_z(z, z_probe_fast_mm_s))
+      if (!probe_down_to_z(fast_z, z_probe_fast_mm_s))
         do_z_clearance(z_clearance);
     }
   #endif
@@ -1149,9 +1248,6 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const float z_min_poi
     )
   #endif
     {
-      // If the probe won't tare, return
-      if (TERN0(PROBE_TARE, tare())) return true;
-
       // Probe downward slowly to find the bed
       if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("Slow Probe:");
       if (try_to_probe(PSTR("SLOW"), z_probe_low_point, z_probe_slow_mm_s, sanity_check)) return NAN;
@@ -1211,10 +1307,10 @@ float Probe::run_z_probe(const bool sanity_check/*=true*/, const float z_min_poi
 
     const float z2 = DIFF_TERN(HAS_DELTA_SENSORLESS_PROBING, current_position.z, largest_sensorless_adj);
 
-    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("2nd Probe Z:", z2, " Discrepancy:", z1 - z2);
+    if (DEBUGGING(LEVELING)) DEBUG_ECHOLNPGM("2nd Probe Z:", z2, " Discrepancy:", (fast_triggered ? z1 - z2 : 0.0f));
 
-    // Return a weighted average of the fast and slow probes
-    const float measured_z = (z2 * 3.0f + z1 * 2.0f) * 0.2f;
+    // If the fast probe didn't trigger, use the slow probe result directly.
+    const float measured_z = fast_triggered ? ((z2 * 3.0f + z1 * 2.0f) * 0.2f) : z2;
 
   #else
 
@@ -1362,7 +1458,29 @@ float Probe::probe_at_point(
         }
       #endif
 
-      measured_z = did_deploy ? NAN : run_z_probe(sanity_check, z_min_point, z_clearance) + offset.z;
+      if (did_deploy) measured_z = NAN;
+      else {
+        // Ensure exactly one tare() per probe point and perform it before
+        // any fast descent. If tare fails, abort this probe point.
+        if (TERN0(PROBE_TARE, tare())) measured_z = NAN;
+        else measured_z = run_z_probe(sanity_check, z_min_point, z_clearance) + offset.z;
+      }
+
+      // After the final multiprobe at this XY, always raise back up to the
+      // stored probe enable-off height (penh) when available so the head is
+      // clear before moving to the next probe point.
+      #if ENABLED(PROBE_ACTIVATION_SWITCH)
+        const float penh_after = MarlinSettings::get_probe_en_off_height();
+        if (!isnan(measured_z) && penh_after > 0.0f) {
+          const float current_z_for_raise = current_position.z;
+          if (current_z_for_raise < penh_after) {
+            SERIAL_ECHOLNPGM("DBG_PROBE: Raising to penh after multiprobe:", penh_after);
+            do_blocking_move_to_xy_z(xy_pos_t{ current_position[X_AXIS], current_position[Y_AXIS] }, penh_after, homing_feedrate(Z_AXIS));
+            safe_delay(MarlinSettings::get_m905_step_settle_ms());
+            if (PROBE_TRIGGERED()) SERIAL_ECHOLNPGM("DBG_PROBE: probe still active after raise to penh post-probe", penh_after);
+          }
+        }
+      #endif
     }
 
     // Deploy succeeded and a successful measurement was done.

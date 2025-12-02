@@ -119,6 +119,11 @@ public:
   // Hook for "Change this temperature"
   static void HandleTemperatureChanged(DGUS_VP_Variable &var, void *val_ptr);
   static void HandleFanSpeedChanged(DGUS_VP_Variable &var, void *val_ptr);
+
+  // Park nozzle button handler: injects G27 when pressed
+  static void HandleParkNozzle(DGUS_VP_Variable &var, void *val_ptr);
+  
+  // Hook for "Change Flowrate"
   // Hook for "Change Flowrate"
   static void HandleFlowRateChanged(DGUS_VP_Variable &var, void *val_ptr);
   // Hook for manual extrude.
@@ -448,6 +453,9 @@ static void Buzzer(const uint16_t frequency, const uint16_t duration);
     int16_t roundedValue = static_cast<int16_t>(round(currentOffset));
     dgusdisplay.WriteVariable(var.VP, roundedValue);
   }
+
+  // Send the calibrated probe enable-off height to the display (scaled, 2 decimals)
+  static void DGUSLCD_SendProbeOffAt(DGUS_VP_Variable &var);
 
   template<AxisEnum Axis>
   static void SendAxisTrustValue(DGUS_VP_Variable &var) {

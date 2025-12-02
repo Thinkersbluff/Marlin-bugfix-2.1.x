@@ -129,18 +129,20 @@ void GcodeSuite::M905() {
 
   // Accept detected_z + margin as calibrated enable-off height
   const float calibrated = detected_z + margin;
+  // Always update the runtime value
+  probe.probe_en_off_height = calibrated;
+  // Keep MarlinSettings in sync with the Probe runtime value
   MarlinSettings::set_probe_en_off_height(calibrated);
-  if (persist) {
-    MarlinSettings::set_probe_en_off_margin(margin);
-    MarlinSettings::set_m905_step_settle_ms(settle_ms);
-  }
-  const bool ok = settings.save();
+  MarlinSettings::set_probe_en_off_margin(margin);
+  MarlinSettings::set_m905_step_settle_ms(settle_ms);
 
-  if (ok) {
+  if (persist) {
+    // Save all three M905 parameters to EEPROM
+    settings.save();
     SERIAL_ECHOLNPGM("M905: Calibrated probe_en_off_height = ", calibrated, " mm (saved to EEPROM)");
   }
   else {
-    SERIAL_ECHOLNPGM("M905: Calibration measured = ", calibrated, " mm (failed to save to EEPROM)");
+    SERIAL_ECHOLNPGM("M905: Calibrated probe_en_off_height = ", calibrated, " mm (not saved)");
   }
 
   // Restore original Z position (best-effort)

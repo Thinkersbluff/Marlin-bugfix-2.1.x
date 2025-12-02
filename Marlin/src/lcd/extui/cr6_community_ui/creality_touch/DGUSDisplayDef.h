@@ -67,7 +67,7 @@ enum DGUSLCD_Screens : uint8_t {
 
   DGUSLCD_SCREEN_INFO = 51,            // DWINTouchPage::MENU_ABOUT
 
-  DGUSLCD_SCREEN_ZOFFSET_LEVEL = 52,   // DWINTouchPage::MENU_ZOFFSET_LEVELING
+  DGUSLCD_SCREEN_ABL = 52,   // DWINTouchPage::MENU_ZOFFSET_LEVELING
   DGUSLCD_SCREEN_LEVELING = 53,        // DWINTouchPage::LEVELING
 
   DGUSLCD_SCREEN_POWER_LOSS = 54,       // DWINTouchPage::DIALOG_POWER_FAILURE
@@ -99,6 +99,8 @@ enum DGUSLCD_Screens : uint8_t {
 
   DGUSLCD_SCREEN_CALIBRATE = 80,
   DGUSLCD_SCREEN_RGB = 81
+  ,
+  DGUSLCD_SCREEN_CALIBRATE_PROBE = 84, // New: Calibrate_Probe screen (#84)
 };
 
 // Version checks
@@ -268,6 +270,19 @@ constexpr uint16_t ICON_REMAINING_VISIBLE = 26;
 constexpr uint16_t ICON_REMAINING_HIDDEN = 27;
 
 constexpr uint16_t VP_Z_OFFSET = 0x1026;
+
+// New VPs for Calibrate_Probe screen (#84)
+// Save button (runs M500)
+constexpr uint16_t VP_CALIBRATE_SAVE = 0x1028;
+// Safe tare TEST button (runs M905)
+constexpr uint16_t VP_SAFE_TARE_TEST = 0x102A;
+// Display for calibrated probe enable-off height (mm)
+constexpr uint16_t VP_PROBE_OFF_AT = 0x102C;
+// Navigation button on Screen #52 to go to Calibrate_Probe (Screen #84)
+constexpr uint16_t VP_NAV_CALIBRATE_PROBE = 0x102E;
+
+// Park nozzle button (mapped to screens 43/44/45) - injects G27 when pressed
+constexpr uint16_t VP_PARK_NOZZLE = 0x102F;
 
 // // SDCard File Listing
 constexpr uint16_t VP_SD_ScrollEvent = 0x20D4; // Data: 0 for "up a directory", numbers are the amount to scroll, e.g -1 one up, 1 one down

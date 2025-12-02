@@ -940,6 +940,8 @@ void GcodeSuite::process_parsed_command(bool no_ok/*=false*/) {
       #endif
       #if ENABLED(EEPROM_SETTINGS)
         case 504: M504(); break;                                  // M504: Validate EEPROM contents
+        case 525: M525(); break;                                  // M525: EEPROM raw dump (dev)
+        case 526: M526(); break;                                  // M526: EEPROM offsets (dev)
       #endif
 
       #if ENABLED(PASSWORD_FEATURE)

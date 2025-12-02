@@ -35,16 +35,17 @@
  *       either sets a Sane Default, or results in No Change to the existing value.
  */
 
-#define EEPROM_VERSION "V92"
+#define EEPROM_VERSION "V94"
 #define EEPROM_OFFSET 100
 
+
 // Check the integrity of data offsets.
-// Can be disabled for production build.
-//#define DEBUG_EEPROM_READWRITE
-//#define DEBUG_EEPROM_OBSERVE
+// Instrumentation for EEPROM debugging. Disabled for normal builds.
+// To re-enable verbose EEPROM debugging, uncomment the following lines.
+// #define DEBUG_EEPROM_READWRITE
+// #define DEBUG_EEPROM_OBSERVE
 
 #include "settings.h"
-
 #include "endstops.h"
 #include "planner.h"
 #include "stepper.h"
@@ -288,9 +289,6 @@ typedef struct SettingsDataStruct {
   //
   #if NUM_AXES
     xyz_pos_t probe_offset;                             // M851 X Y Z
-    float     probe_en_off_height;                      // M905 calibrated probe enable-off height (mm)
-    float     probe_en_off_margin;                      // M905 safety margin (mm)
-    uint16_t  m905_step_settle_ms;                      // M905 step settle delay (ms)
   #endif
 
   //
@@ -708,6 +706,15 @@ typedef struct SettingsDataStruct {
     // uint32_t material_changes
   #endif
 
+  //
+  // PROBE ACTIVATION Calibration
+  //
+  #if ENABLED(PROBE_ACTIVATION_SWITCH)
+    float     probe_en_off_height;                      // M905 calibrated probe enable-off height (mm)
+    float     probe_en_off_margin;                      // M905 safety margin (mm)
+    uint16_t  m905_step_settle_ms;                      // M905 step settle delay (ms)
+  #endif
+  
 } SettingsData;
 
 //static_assert(sizeof(SettingsData) <= MARLIN_EEPROM_SIZE, "EEPROM too small to contain SettingsData!");
@@ -718,6 +725,8 @@ MarlinSettings settings;
 static float probe_en_off_height = PROBE_EN_OFF_HEIGHT_DEFAULT;
 static float probe_en_off_margin = PROBE_EN_OFF_MARGIN;
 static uint16_t m905_step_settle_ms = M905_STEP_SETTLE_MS;
+
+uint16_t MarlinSettings::eeprom_offset() { return (uint16_t)EEPROM_OFFSET; }
 
 uint16_t MarlinSettings::datasize() { return sizeof(SettingsData); }
 
@@ -868,11 +877,13 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
 
   #if ENABLED(DEBUG_EEPROM_READWRITE)
     #define _FIELD_TEST(FIELD) \
-      SERIAL_ECHOLNPGM("Field: " STRINGIFY(FIELD)); \
-      EEPROM_ASSERT( \
-        eeprom_error || eeprom_index == EEPROM_OFFSETOF(FIELD), \
-        "Field " STRINGIFY(FIELD) " mismatch." \
-      )
+      do { \
+        SERIAL_ECHOLNPGM("Field: " STRINGIFY(FIELD)); \
+        if (!(eeprom_error || eeprom_index == EEPROM_OFFSETOF(FIELD))) { \
+          SERIAL_ECHO_START(); SERIAL_ECHOLNPGM("Field " STRINGIFY(FIELD) " mismatch. eeprom_index=", eeprom_index, " expected=", EEPROM_OFFSETOF(FIELD)); \
+          EEPROM_ASSERT(false, "Field " STRINGIFY(FIELD) " mismatch."); \
+        } \
+      } while(0)
   #else
     #define _FIELD_TEST(FIELD) NOOP
   #endif
@@ -898,13 +909,146 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
   int MarlinSettings::eeprom_index;
   uint16_t MarlinSettings::working_crc;
 
+  // Print compiled EEPROM offsets for SettingsData fields (debug helper)
+  void MarlinSettings::print_offsets() {
+    SERIAL_ECHOLNPGM("EEPROM Offsets (EEPROM_OFFSET = "); SERIAL_ECHOLN((int)MarlinSettings::eeprom_offset());
+
+    SERIAL_ECHOPGM("e_factors:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(e_factors));
+    SERIAL_ECHOPGM("planner.settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_settings));
+    SERIAL_ECHOPGM("planner_max_jerk:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_max_jerk));
+    SERIAL_ECHOPGM("planner_junction_deviation_mm:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_junction_deviation_mm));
+    SERIAL_ECHOPGM("home_offset:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(home_offset));
+    #if HAS_HOTEND_OFFSET
+      SERIAL_ECHOPGM("hotend_offset:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(hotend_offset));
+    #endif
+    #if HAS_SPINDLE_ACCELERATION
+      SERIAL_ECHOPGM("acceleration_spindle:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(acceleration_spindle));
+    #endif
+    SERIAL_ECHOPGM("runout_sensor_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(runout_sensor_enabled));
+    #if ENABLED(AUTOTEMP)
+      SERIAL_ECHOPGM("planner_autotemp_max:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_autotemp_max));
+    #endif
+    SERIAL_ECHOPGM("mesh_num_x:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(mesh_num_x));
+    SERIAL_ECHOPGM("mesh_num_y:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(mesh_num_y));
+    SERIAL_ECHOPGM("mesh_check:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(mesh_check));
+    SERIAL_ECHOPGM("probe_offset:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(probe_offset));
+    SERIAL_ECHOPGM("planner_bed_level_matrix:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_bed_level_matrix));
+    SERIAL_ECHOPGM("grid_max_x:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(grid_max_x));
+    SERIAL_ECHOPGM("grid_max_y:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(grid_max_y));
+    SERIAL_ECHOPGM("grid_check:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(grid_check));
+    #if ENABLED(X_AXIS_TWIST_COMPENSATION)
+      SERIAL_ECHOPGM("xatc_spacing:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(xatc_spacing));
+    #endif
+    SERIAL_ECHOPGM("planner_leveling_active:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_leveling_active));
+    // `servo_angles` may not be part of SettingsData for this build configuration
+    SERIAL_ECHOPGM("bltouch_od_5v_mode:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(bltouch_od_5v_mode));
+    #if HAS_BLTOUCH_HS_MODE
+      SERIAL_ECHOPGM("bltouch_high_speed_mode:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(bltouch_high_speed_mode));
+    #endif
+    #if IS_KINEMATIC && ENABLED(DELTA)
+      SERIAL_ECHOPGM("delta_height:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(delta_height));
+    #endif
+    #if IS_KINEMATIC && ENABLED(POLARGRAPH)
+      SERIAL_ECHOPGM("draw_area_min:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(draw_area_min));
+    #endif
+    #if HAS_EXTRA_ENDSTOPS
+      SERIAL_ECHOPGM("x2_endstop_adj:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(x2_endstop_adj));
+    #endif
+    SERIAL_ECHOPGM("ui_material_preset:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(ui_material_preset));
+    SERIAL_ECHOPGM("hotendPID:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(hotendPID));
+    SERIAL_ECHOPGM("lpq_len:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(lpq_len));
+    SERIAL_ECHOPGM("bedPID:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(bedPID));
+    SERIAL_ECHOPGM("chamberPID:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(chamberPID));
+    #if HAS_USER_THERMISTORS
+      SERIAL_ECHOPGM("user_thermistor:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(user_thermistor));
+    #endif
+    SERIAL_ECHOPGM("power_monitor_flags:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(power_monitor_flags));
+    SERIAL_ECHOPGM("lcd_contrast:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(lcd_contrast));
+    SERIAL_ECHOPGM("lcd_brightness:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(lcd_brightness));
+    SERIAL_ECHOPGM("controllerFan_settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(controllerFan_settings));
+    SERIAL_ECHOPGM("recovery_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(recovery_enabled));
+    SERIAL_ECHOPGM("fwretract_settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(fwretract_settings));
+    #if ENABLED(EDITABLE_HOMING_FEEDRATE)
+      SERIAL_ECHOPGM("homing_feedrate_mm_m:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(homing_feedrate_mm_m));
+    #endif
+    #if ENABLED(EDITABLE_HOMING_CURRENT)
+      SERIAL_ECHOPGM("homing_current_mA:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(homing_current_mA));
+    #endif
+    SERIAL_ECHOPGM("parser_volumetric_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(parser_volumetric_enabled));
+    SERIAL_ECHOPGM("tmc_stepper_current:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(tmc_stepper_current));
+    SERIAL_ECHOPGM("tmc_hybrid_threshold:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(tmc_hybrid_threshold));
+    SERIAL_ECHOPGM("tmc_sgt:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(tmc_sgt));
+    SERIAL_ECHOPGM("tmc_stealth_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(tmc_stealth_enabled));
+    SERIAL_ECHOPGM("planner_extruder_advance_K:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_extruder_advance_K));
+    #if ENABLED(LIN_ADVANCE) && ENABLED(SMOOTH_LIN_ADVANCE)
+      SERIAL_ECHOPGM("stepper_extruder_advance_tau:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(stepper_extruder_advance_tau));
+    #endif
+    SERIAL_ECHOPGM("motor_current_setting:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(motor_current_setting));
+    #if ENABLED(ADAPTIVE_STEP_SMOOTHING_TOGGLE)
+      SERIAL_ECHOPGM("adaptive_step_smoothing_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(adaptive_step_smoothing_enabled));
+    #endif
+    SERIAL_ECHOPGM("coordinate_system:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(coordinate_system));
+    #if ENABLED(SKEW_CORRECTION)
+      SERIAL_ECHOPGM("planner_skew_factor:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(planner_skew_factor));
+    #endif
+    #if ENABLED(CONFIGURE_FILAMENT_CHANGE)
+      SERIAL_ECHOPGM("fc_settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(fc_settings));
+    #endif
+    #if HAS_MULTI_EXTRUDER
+      SERIAL_ECHOPGM("toolchange_settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(toolchange_settings));
+    #endif
+    SERIAL_ECHOPGM("backlash_distance_mm:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(backlash_distance_mm));
+    #if ENABLED(EXTENSIBLE_UI)
+      SERIAL_ECHOPGM("extui_data:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(extui_data));
+    #endif
+    #if ENABLED(DWIN_CREALITY_LCD_JYERSUI)
+      SERIAL_ECHOPGM("dwin_settings:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(dwin_settings));
+    #endif
+    #if CASELIGHT_USES_BRIGHTNESS
+      SERIAL_ECHOPGM("caselight_brightness:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(caselight_brightness));
+    #endif
+    #if ENABLED(PASSWORD_FEATURE)
+      SERIAL_ECHOPGM("password_is_set:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(password_is_set));
+    #endif
+    #if ENABLED(TOUCH_SCREEN_CALIBRATION)
+      SERIAL_ECHOPGM("touch_calibration_data:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(touch_calibration_data));
+    #endif
+    #if HAS_ETHERNET
+      SERIAL_ECHOPGM("ethernet_hardware_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(ethernet_hardware_enabled));
+    #endif
+    #if ENABLED(SOUND_MENU_ITEM)
+      SERIAL_ECHOPGM("sound_on:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(sound_on));
+    #endif
+    #if HAS_FANCHECK
+      SERIAL_ECHOPGM("fan_check_enabled:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(fan_check_enabled));
+    #endif
+    #if DGUS_LCD_UI_MKS
+      SERIAL_ECHOPGM("mks_language_index:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(mks_language_index));
+    #endif
+    #if ENABLED(FT_MOTION)
+      SERIAL_ECHOPGM("ftMotion_cfg:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(ftMotion_cfg));
+    #endif
+    #if ENABLED(INPUT_SHAPING_X)
+      SERIAL_ECHOPGM("shaping_x_frequency:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(shaping_x_frequency));
+    #endif
+    #if ENABLED(INPUT_SHAPING_Y)
+      SERIAL_ECHOPGM("shaping_y_frequency:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(shaping_y_frequency));
+    #endif
+    #if ENABLED(INPUT_SHAPING_Z)
+      SERIAL_ECHOPGM("shaping_z_frequency:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(shaping_z_frequency));
+    #endif
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      SERIAL_ECHOPGM("probe_en_off_height:"); SERIAL_ECHOLN((int)EEPROM_OFFSETOF(probe_en_off_height));
+    #endif
+
+    SERIAL_ECHOPGM("datasize():"); SERIAL_ECHOLN((int)MarlinSettings::datasize());
+  }
+
   EEPROM_Error MarlinSettings::size_error(const uint16_t size) {
     if (size != datasize()) {
-      DEBUG_WARN_MSG("EEPROM datasize error."
-        #if ENABLED(MARLIN_DEV_MODE)
-          " (Actual:", size, " Expected:", datasize(), ")"
-        #endif
-      );
+      DEBUG_WARN_MSG("EEPROM datasize error.");
+      // Always print the stored and compiled data sizes for easier debugging
+      SERIAL_ECHO_START(); SERIAL_ECHOLNPGM("EEPROM datasize mismatch: stored=", size, " compiled=", datasize());
       return ERR_EEPROM_SIZE;
     }
     return ERR_EEPROM_NOERR;
@@ -1094,20 +1238,9 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
         constexpr xyz_pos_t zpo{0};
       #endif
       EEPROM_WRITE(zpo);
-      
-      // Persist calibrated probe enable-off height (M905)
-      #if HAS_BED_PROBE
-        const float penh = probe_en_off_height;
-        const float penh_margin = probe_en_off_margin;
-        const uint16_t penh_settle = m905_step_settle_ms;
-      #else
-        constexpr float penh = PROBE_EN_OFF_HEIGHT_DEFAULT;
-        constexpr float penh_margin = PROBE_EN_OFF_MARGIN;
-        constexpr uint16_t penh_settle = M905_STEP_SETTLE_MS;
-      #endif
-      EEPROM_WRITE(penh);
-      EEPROM_WRITE(penh_margin);
-      EEPROM_WRITE(penh_settle);
+
+
+
     }
     #endif
 
@@ -1553,6 +1686,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
     // TMC StallGuard threshold
     //
     {
+      _FIELD_TEST(tmc_sgt);
       mot_stepper_int16_t tmc_sgt{0};
       #if USE_SENSORLESS
         NUM_AXIS_CODE(
@@ -1637,14 +1771,14 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
 
     //
     // Adaptive Step Smoothing state
-    //
+    #
     #if ENABLED(ADAPTIVE_STEP_SMOOTHING_TOGGLE)
       _FIELD_TEST(adaptive_step_smoothing_enabled);
       EEPROM_WRITE(stepper.adaptive_step_smoothing_enabled);
     #endif
 
     //
-    // CNC Coordinate Systems
+    // CNC Coordinate System
     //
     #if NUM_AXES
       _FIELD_TEST(coordinate_system);
@@ -1733,7 +1867,8 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
     //
     // Case Light Brightness
     //
-    #if CASELIGHT_USES_BRIGHTNESS
+      #if CASELIGHT_USES_BRIGHTNESS
+      _FIELD_TEST(caselight_brightness);
       EEPROM_WRITE(caselight.brightness);
     #endif
 
@@ -1747,17 +1882,19 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
     //
     // Password feature
     //
-    #if ENABLED(PASSWORD_FEATURE)
-      EEPROM_WRITE(password.is_set);
-      EEPROM_WRITE(password.value);
-    #endif
+      #if ENABLED(PASSWORD_FEATURE)
+        _FIELD_TEST(password_is_set);
+        EEPROM_WRITE(password.is_set);
+        EEPROM_WRITE(password.value);
+      #endif
 
     //
     // TOUCH_SCREEN_CALIBRATION
     //
-    #if ENABLED(TOUCH_SCREEN_CALIBRATION)
-      EEPROM_WRITE(touch_calibration.calibration);
-    #endif
+      #if ENABLED(TOUCH_SCREEN_CALIBRATION)
+        _FIELD_TEST(touch_calibration_data);
+        EEPROM_WRITE(touch_calibration.calibration);
+      #endif
 
     //
     // Ethernet network info
@@ -1781,21 +1918,24 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
     //
     // Buzzer enable/disable
     //
-    #if ENABLED(SOUND_MENU_ITEM)
-      EEPROM_WRITE(ui.sound_on);
-    #endif
+      #if ENABLED(SOUND_MENU_ITEM)
+        _FIELD_TEST(sound_on);
+        EEPROM_WRITE(ui.sound_on);
+      #endif
 
     //
     // Fan tachometer check
     //
-    #if HAS_FANCHECK
-      EEPROM_WRITE(fan_check.enabled);
-    #endif
+      #if HAS_FANCHECK
+        _FIELD_TEST(fan_check_enabled);
+        EEPROM_WRITE(fan_check.enabled);
+      #endif
 
     //
     // MKS UI controller
     //
-    #if DGUS_LCD_UI_MKS
+      #if DGUS_LCD_UI_MKS
+      _FIELD_TEST(mks_language_index);
       EEPROM_WRITE(mks_language_index);
       EEPROM_WRITE(mks_corner_offsets);
       EEPROM_WRITE(mks_park_pos);
@@ -1827,19 +1967,37 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
     //
     // Input Shaping
     //
-    #if HAS_ZV_SHAPING
-      #if ENABLED(INPUT_SHAPING_X)
-        EEPROM_WRITE(stepper.get_shaping_frequency(X_AXIS));
-        EEPROM_WRITE(stepper.get_shaping_damping_ratio(X_AXIS));
-      #endif
-      #if ENABLED(INPUT_SHAPING_Y)
-        EEPROM_WRITE(stepper.get_shaping_frequency(Y_AXIS));
-        EEPROM_WRITE(stepper.get_shaping_damping_ratio(Y_AXIS));
-      #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        EEPROM_WRITE(stepper.get_shaping_frequency(Z_AXIS));
-        EEPROM_WRITE(stepper.get_shaping_damping_ratio(Z_AXIS));
-      #endif
+    #if ENABLED(INPUT_SHAPING_X)
+    {
+      _FIELD_TEST(shaping_x_frequency);
+      struct { float freq, damp; } _data;
+      // Populate from current runtime settings then write to EEPROM
+      _data.freq = stepper.get_shaping_frequency(X_AXIS);
+      _data.damp = stepper.get_shaping_damping_ratio(X_AXIS);
+      EEPROM_WRITE(_data);
+    }
+    #endif
+
+    #if ENABLED(INPUT_SHAPING_Y)
+    {
+      _FIELD_TEST(shaping_y_frequency);
+      struct { float freq, damp; } _data;
+      // Populate from current runtime settings then write to EEPROM
+      _data.freq = stepper.get_shaping_frequency(Y_AXIS);
+      _data.damp = stepper.get_shaping_damping_ratio(Y_AXIS);
+      EEPROM_WRITE(_data);
+    }
+    #endif
+
+    #if ENABLED(INPUT_SHAPING_Z)
+    {
+      _FIELD_TEST(shaping_z_frequency);
+      struct { float freq, damp; } _data;
+      // Populate from current runtime settings then write to EEPROM
+      _data.freq = stepper.get_shaping_frequency(Z_AXIS);
+      _data.damp = stepper.get_shaping_damping_ratio(Z_AXIS);
+      EEPROM_WRITE(_data);
+    }
     #endif
 
     //
@@ -1872,7 +2030,20 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       EEPROM_WRITE(mmu3.stealth_mode); // EEPROM_MMU_STEALTH
       EEPROM_WRITE(mmu3.mmu_hw_enabled); // EEPROM_MMU_ENABLED
     #endif
+    //
+    // PROBE ACTIVATION Calibration
+    //
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      {
+        _FIELD_TEST(probe_en_off_height);
+        EEPROM_WRITE(probe.probe_en_off_height);
 
+        const float penh_margin = probe_en_off_margin;
+        const uint16_t penh_settle = m905_step_settle_ms;
+        EEPROM_WRITE(penh_margin);
+        EEPROM_WRITE(penh_settle);
+      }
+    #endif
     //
     // Report final CRC and Data Size
     //
@@ -1950,6 +2121,8 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
         eeprom_error = check;
         break;
       }
+
+
 
       //
       // Optionally reset on first boot after flashing
@@ -2113,6 +2286,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // AUTOTEMP
       //
       #if ENABLED(AUTOTEMP)
+        _FIELD_TEST(planner_autotemp_max);
         EEPROM_READ(planner.autotemp.max);
         EEPROM_READ(planner.autotemp.min);
         EEPROM_READ(planner.autotemp.factor);
@@ -2162,27 +2336,16 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       #if NUM_AXES
       {
         _FIELD_TEST(probe_offset);
+
         #if HAS_BED_PROBE
-          const xyz_pos_t &zpo = probe.offset;
+          xyz_pos_t zpo;
         #else
           xyz_pos_t zpo;
         #endif
         EEPROM_READ(zpo);
-        // Retrieve stored M905 probe enable-off height (if present)
+
         #if HAS_BED_PROBE
-          float penh;
-          EEPROM_READ(penh);
-          float penh_margin;
-          uint16_t penh_settle;
-          EEPROM_READ(penh_margin);
-          EEPROM_READ(penh_settle);
-          if (!validating) {
-            probe_en_off_height = penh;
-            probe_en_off_margin = penh_margin;
-            m905_step_settle_ms = penh_settle;
-          }
-        #else
-          EEPROM_READ(dummyf);
+          if (!validating) probe.offset = zpo;
         #endif
       }
       #endif
@@ -2383,6 +2546,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // Hotend PID
       //
       {
+        _FIELD_TEST(hotendPID);
         HOTEND_LOOP() {
           raw_pidcf_t pidcf;
           EEPROM_READ(pidcf);
@@ -2410,6 +2574,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // Heated Bed PID
       //
       {
+        _FIELD_TEST(bedPID);
         raw_pid_t pid;
         EEPROM_READ(pid);
         #if ENABLED(PIDTEMPBED)
@@ -2422,6 +2587,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // Heated Chamber PID
       //
       {
+        _FIELD_TEST(chamberPID);
         raw_pid_t pid;
         EEPROM_READ(pid);
         #if ENABLED(PIDTEMPCHAMBER)
@@ -2757,8 +2923,9 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // Adaptive Step Smoothing state
       //
       #if ENABLED(ADAPTIVE_STEP_SMOOTHING_TOGGLE)
-        EEPROM_READ(stepper.adaptive_step_smoothing_enabled);
-      #endif
+          _FIELD_TEST(adaptive_step_smoothing_enabled);
+          EEPROM_READ(stepper.adaptive_step_smoothing_enabled);
+        #endif
 
       //
       // CNC Coordinate System
@@ -2844,10 +3011,24 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       // Extensible UI User Data
       //
       #if ENABLED(EXTENSIBLE_UI)
-      { // This is a significant hardware change; don't reserve EEPROM space when not present
-        const char extui_data[ExtUI::eeprom_data_size] = { 0 };
+      {
+        /* Read only as many bytes as were stored previously to tolerate
+           changes in `ExtUI::eeprom_data_size` between firmware builds.
+           We still advance `eeprom_index` by the compiled size so that
+           subsequent _FIELD_TEST anchors remain valid. */
+        const size_t want = ExtUI::eeprom_data_size;
+        size_t remaining = 0;
+        if (stored_size > (eeprom_index - EEPROM_OFFSET))
+          remaining = stored_size - (eeprom_index - EEPROM_OFFSET);
+        const size_t to_read = (remaining < want) ? remaining : want;
+
+        char extui_data[ExtUI::eeprom_data_size] = { 0 };
         _FIELD_TEST(extui_data);
-        EEPROM_READ(extui_data);
+        if (to_read) EEPROM_READ((uint8_t *)extui_data, to_read);
+        // If stored data was smaller than expected, simulate skipping the
+        // remaining bytes so anchors for subsequent fields stay in sync.
+        if (to_read < want) eeprom_index += (int)(want - to_read);
+
         if (!validating) ExtUI::onLoadSettings(extui_data);
       }
       #endif
@@ -2968,6 +3149,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
       //
       #if ENABLED(INPUT_SHAPING_X)
       {
+        _FIELD_TEST(shaping_x_frequency);
         struct { float freq, damp; } _data;
         EEPROM_READ(_data);
         if (!validating) {
@@ -2979,6 +3161,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
 
       #if ENABLED(INPUT_SHAPING_Y)
       {
+        _FIELD_TEST(shaping_y_frequency);
         struct { float freq, damp; } _data;
         EEPROM_READ(_data);
         if (!validating) {
@@ -2990,6 +3173,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
 
       #if ENABLED(INPUT_SHAPING_Z)
       {
+        _FIELD_TEST(shaping_z_frequency);
         struct { float freq, damp; } _data;
         EEPROM_READ(_data);
         if (!validating) {
@@ -3047,6 +3231,29 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
         mmu3.mmu_hw_enabled_addr = eeprom_index;
         EEPROM_READ(mmu3.mmu_hw_enabled); // EEPROM_MMU_ENABLED
       #endif
+      
+      //
+      // PROBE ACTIVATION Calibration
+      //
+      #if ENABLED(PROBE_ACTIVATION_SWITCH)
+        {
+          _FIELD_TEST(probe_en_off_height);
+          EEPROM_READ(probe.probe_en_off_height);
+
+          // Keep MarlinSettings runtime value in sync with the Probe runtime value
+          MarlinSettings::set_probe_en_off_height(probe.probe_en_off_height);
+
+          float penh_margin;
+          uint16_t penh_settle;
+          EEPROM_READ(penh_margin);
+          EEPROM_READ(penh_settle);
+
+          if (!validating) {
+            probe_en_off_margin = penh_margin;
+            m905_step_settle_ms = penh_settle;
+          }
+        }
+      #endif
 
       //
       // Validate Final Size and CRC
@@ -3096,6 +3303,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
           }
         }
       #endif
+
 
     } while(0);
 
@@ -3535,11 +3743,14 @@ void MarlinSettings::reset() {
     #else
       probe.offset.set(NUM_AXIS_LIST(0, 0, dpo[Z_AXIS], 0, 0, 0, 0, 0, 0));
     #endif
-    // Default calibrated probe enable-off height
-    probe_en_off_height = PROBE_EN_OFF_HEIGHT_DEFAULT;
-    // Default persisted tuning values
-    probe_en_off_margin = PROBE_EN_OFF_MARGIN;
-    m905_step_settle_ms  = M905_STEP_SETTLE_MS;
+
+    #if ENABLED(PROBE_ACTIVATION_SWITCH)
+      // Default calibrated probe enable-off height
+      probe_en_off_height = PROBE_EN_OFF_HEIGHT_DEFAULT;
+      // Default persisted tuning values
+      probe_en_off_margin = PROBE_EN_OFF_MARGIN;
+      m905_step_settle_ms  = M905_STEP_SETTLE_MS;
+    #endif
   #endif
 
   //

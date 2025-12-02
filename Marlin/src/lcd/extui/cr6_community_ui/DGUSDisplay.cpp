@@ -50,6 +50,8 @@
 
 // CR6 compat shims
 #include "cr6_compat.h"
+// Hex dump helper
+#include "../../../libs/hex_print.h"
 
 // Preamble... 2 Bytes, usually 0x5A 0xA5, but configurable
 constexpr uint8_t DGUS_HEADER1 = 0x5A;
@@ -117,6 +119,11 @@ void DGUSDisplay::WriteVariable(uint16_t adr, const void* values, uint8_t values
 
 void DGUSDisplay::WriteVariable(uint16_t adr, uint16_t value) {
   value = (value & 0xffU) << 8U | (value >> 8U);
+  #if ENABLED(DEBUG_DGUSLCD)
+    SERIAL_ECHOPGM("WriteVariable VP=0x"); print_hex_long(adr, '\0', true);
+    SERIAL_ECHOPGM(" bytes=0x"); print_hex_long(value, '\0', true);
+    SERIAL_EOL();
+  #endif
   WriteVariable(adr, static_cast<const void*>(&value), sizeof(uint16_t));
 }
 
@@ -251,6 +258,14 @@ void DGUSDisplay::ProcessRx() {
         |           Command          DataLen (in Words) */
         if (command == DGUS_CMD_READVAR) {
           const uint16_t vp = tmp[0] << 8 | tmp[1];
+
+          // Quick debug: print incoming VP and first data bytes so we can
+          // verify what the display actually sends when a button is pressed.
+          // Gate these behind DEBUG_DGUSLCD so normal builds aren't noisy.
+#if ENABLED(DEBUG_DGUSLCD)
+          SERIAL_ECHOLNPAIR("DGUS incoming VP=0x", vp);
+          SERIAL_ECHOLNPAIR("DGUS payload byte0=", tmp[3]);
+#endif
 
           //const uint8_t dlen = tmp[2] << 1;  // Convert to Bytes. (Display works with words)
           //DEBUG_ECHOPAIR(" vp=", vp, " dlen=", dlen);

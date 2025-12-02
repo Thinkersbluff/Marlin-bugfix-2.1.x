@@ -233,9 +233,18 @@ const uint16_t VPList_Basic[] PROGMEM = {
   0x0000
 };
 
-const uint16_t VPList_ZOffsetLevel[] PROGMEM = {
+const uint16_t VPList_ABL[] PROGMEM = {
   VPList_CommonWithStatus,
   VP_LEVELING_FADE_HEIGHT,
+  VP_NAV_CALIBRATE_PROBE,
+
+  0x0000
+};
+
+// VP list for the new Calibrate_Probe screen (#84)
+const uint16_t VPList_CalibrateProbe[] PROGMEM = {
+  VPList_CommonWithStatus,
+  VP_PROBE_OFF_AT,
 
   0x0000
 };
@@ -449,7 +458,7 @@ const struct VPMapping VPMap[] PROGMEM = {
   { DGUSLCD_SCREEN_TEMP_PLA, VPList_PreheatPLASettings },
   { DGUSLCD_SCREEN_TEMP_ABS, VPList_PreheatABSSettings },
 
-  { DGUSLCD_SCREEN_ZOFFSET_LEVEL, VPList_ZOffsetLevel },
+  { DGUSLCD_SCREEN_ABL, VPList_ABL },
   { DGUSLCD_SCREEN_LEVELING, VPList_Leveling },
 
   { DGUSLCD_SCREEN_POWER_LOSS, VPList_None },
@@ -482,6 +491,7 @@ const struct VPMapping VPMap[] PROGMEM = {
   { DGUSLCD_SCREEN_MESH_VALIDATION, VPList_MeshValidation },
 
   { DGUSLCD_SCREEN_CALIBRATE, VPList_Calibrate },
+  { DGUSLCD_SCREEN_CALIBRATE_PROBE, VPList_CalibrateProbe },
   { DGUSLCD_SCREEN_RGB, VPList_RGB},
 
   { 0 , nullptr } // List is terminated with an nullptr as table entry.
@@ -642,6 +652,13 @@ const struct DGUS_VP_Variable ListOfVP[] PROGMEM = {
   VPHELPER(VP_Z_OFFSET, nullptr, ScreenHandler.HandleZoffsetChange<2>, ScreenHandler.DGUSLCD_SendZOffsetToDisplay<2>),
 #endif
 
+  // Calibrate Probe screen VPs
+  VPHELPER(VP_CALIBRATE_SAVE, nullptr, DGUSCrealityDisplay_HandleReturnKeyEvent, nullptr),
+  VPHELPER(VP_SAFE_TARE_TEST, nullptr, DGUSCrealityDisplay_HandleReturnKeyEvent, nullptr),
+  VPHELPER(VP_PROBE_OFF_AT, nullptr, nullptr, ScreenHandler.DGUSLCD_SendProbeOffAt),
+  // Navigation helper to go from Z-Offset Level (screen 52) -> Calibrate_Probe (screen 84)
+  VPHELPER(VP_NAV_CALIBRATE_PROBE, nullptr, (ScreenHandler.DGUSLCD_NavigateToPage<DGUSLCD_SCREEN_CALIBRATE_PROBE>), nullptr),
+
   VPHELPER(VP_FAN_TOGGLE, &thermalManager.fan_speed[0], nullptr, ScreenHandler.DGUSLCD_SendFanStatusToDisplay),
   VPHELPER(VP_Fan0_Percentage, &thermalManager.fan_speed[0], ScreenHandler.HandleFanSpeedChanged, ScreenHandler.DGUSLCD_SendFanSpeedToDisplay),
 
@@ -677,7 +694,7 @@ const struct DGUS_VP_Variable ListOfVP[] PROGMEM = {
 #ifdef HAS_MESH
   VPHELPER(VP_LEVELING_FADE_HEIGHT, &planner.z_fade_height, ScreenHandler.HandleFadeHeight, ScreenHandler.DGUSLCD_SendFloatAsIntValueToDisplay<1>),
 
-  VPHELPER(VP_LEVELING_NAV_BUTTON, nullptr, (ScreenHandler.DGUSLCD_NavigateToPage<DGUSLCD_SCREEN_ZOFFSET_LEVEL>), nullptr),
+  VPHELPER(VP_LEVELING_NAV_BUTTON, nullptr, (ScreenHandler.DGUSLCD_NavigateToPage<DGUSLCD_SCREEN_ABL>), nullptr),
   VPHELPER(VP_LEVELING_EDIT_NAV_BUTTON, nullptr, (ScreenHandler.DGUSLCD_NavigateToPage<DGUSLCD_SCREEN_LEVELING>), nullptr),
 #endif
   // Creality has the same button ID mapped all over the place, so let the generic handler figure it out
@@ -739,6 +756,9 @@ const struct DGUS_VP_Variable ListOfVP[] PROGMEM = {
   // Additional buttons
   VPHELPER(VP_MUTE_TOGGLE, nullptr, ScreenHandler.HandleToggleTouchScreenMute, nullptr),
   VPHELPER(VP_STANDBY_BACKLIGHT_TOGGLE, nullptr, ScreenHandler.HandleToggleTouchScreenStandbySetting, nullptr),
+
+  // Park nozzle button - triggers G27 (park nozzle)
+  VPHELPER(VP_PARK_NOZZLE, nullptr, ScreenHandler.HandleParkNozzle, nullptr),
 
   // Additional settings
   VPHELPER(VP_SCREEN_BACKLIGHT_STANDBY, &ScreenHandler.Settings.standby_screen_brightness, ScreenHandler.HandleTouchScreenStandbyBrightnessSetting, ScreenHandler.DGUSLCD_SendWordValueToDisplay),

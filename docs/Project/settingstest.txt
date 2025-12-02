@@ -1,0 +1,57 @@
+Short answer: the test flagged many discrepancies — most are benign formatting/name differences or conditional/duplicate headers, but there is at least one real, dangerous mismatch: the M905 probe fields were moved into a separate "PROBE ACTIVATION Calibration" write block while their declaration lives earlier under the `HAS_BED_PROBE` subsection in the `SettingsDataStruct`. That relocation will break offsets (and matches the "planner_leveling_active mismatch" you saw).
+
+What the test reported (high level)
+- Counts: 59 struct subsections, 65 subsections in `save()`, 68 in `_load()`. So save/_load contain extra headings and/or duplicates.
+- Missing-from-struct lists (examples):
+  - Many entries from the struct are reported as missing in `save()` and `_load()` — e.g. 'DISTINCT_E_FACTORS', 'Planner settings', 'HAS_BED_PROBE', 'AUTO_BED_LEVELING_BILINEAR', 'PIDTEMP', 'FWRETRACT', etc.
+- The previous run also explicitly identified the probe field mismatch:
+  - The struct contains `probe_en_off_height` and associated fields in the `HAS_BED_PROBE` subsection, but the EEPROM write block is labeled `PROBE ACTIVATION Calibration` and appears later in `save()`. Your script printed:
+    - Field 'probe_en_off_height' struct-pos=2274 write-index=143
+
+Why so many subsections are reported “missing”
+- Strict header matching: the test requires an exact match of the three-line header block format:
+  //
+  // SUBSECTION NAME
+  //
+  - Any small name change (plural vs singular, extra words, abbreviated titles) causes a mismatch. For example: "Planner settings" vs "Planner Motion" or "Hotend Offset" vs "Hotend Offsets".
+- Conditional compilation: some subsections exist only when certain feature macros are enabled. If `save()`/`_load()` wrap a block in a different set of `#if` conditions than the struct, the script will see different subsections at parse time for the active configuration.
+- Duplicates or extra headings: `save()` and `_load()` include additional grouping headings (e.g., "Planner Motion", "Probe XYZ Offsets", "PROBE ACTIVATION Calibration") that don't match the exact struct headings — these produce extra entries in `save()`/_load.
+
+Which differences are likely real bugs vs. cosmetic
+- Cosmetic / test-artifact:
+  - Header name synonyms, whitespace, pluralization and i18n-style differences — cause false positives in the strict test.
+  - Extra/duplicate headings in `save()`/_load()` that are purely organizational and do not change the order of EEPROM writes relative to struct fields.
+- Real / dangerous:
+  - Subsections that contain the same fields but are placed in a different order relative to the struct. That is exactly what we see with the M905/probe fields: their struct declaration is earlier (in `HAS_BED_PROBE`) while the actual EEPROM writes for those fields are later under `PROBE ACTIVATION Calibration`. That relocation changes offsets and will corrupt load/save mapping.
+
+Concrete evidence the probe block is a root cause
+- You previously observed "Field planner_leveling_active mismatch. eeprom_index=402 expected=412" — a 10-byte delta.
+- The test reported the `probe_en_off_height` field present in the struct at a different position than where `save()` writes it.
+- The source shows the `PROBE ACTIVATION Calibration` EEPROM_WRITE block is later in the `save()` implementation (around line ~1885), whereas the `HAS_BED_PROBE` fields appear earlier in the `SettingsDataStruct` (lines ~285–295 in struct). That mismatch will shift all subsequent fields or leave a gap.
+
+Recommendations (order by risk/effort)
+1) Quick fix (preferred): move the three EEPROM_WRITE calls for the M905 fields into the same subsection where the struct defines them (the `HAS_BED_PROBE` section). This aligns struct layout and write order with minimum risk and no data migration. I can prepare that patch for you now.
+2) Safer fix with migration (recommended if users already have stored settings you must preserve): keep the new layout but add load-time migration code in `_load()`:
+   - If you detect a datasize/offset mismatch, read the older offset locations and copy the M905 bytes into the new offsets before finishing load(), then save() to persist migrated layout. This preserves user settings while making the code safe.
+3) Force reset user EEPROM by bumping `EEPROM_VERSION`: this nukes stored settings so the new layout is safe, but users lose persisted calibration. Use only if preserving stored data is not important.
+4) Improve conventions (longer-term): adopt a canonical subsection name normalization or require a single authoritative header naming convention to avoid these mistakes.
+
+Suggested next steps I can take for you
+- Option A — Implement the minimal/fast fix: move `EEPROM_WRITE(probe.probe_en_off_height); EEPROM_WRITE(penh_margin); EEPROM_WRITE(penh_settle);` into the `HAS_BED_PROBE` write block (i.e., in the save() section just after probe offset writes). I can craft and apply that patch.
+- Option B — Implement migration: add code in `_load()` to detect the old layout and copy the three probe values if present. I can implement a conservative migration that:
+  - If datasize mismatch or `planner_leveling_active` mismatch is detected, attempt to read the three probe bytes from their previous offsets (we must know the old offsets — the M525 dump would help confirm) and migrate them.
+- Option C — Improve the test script to be more permissive and helpful:
+  - Normalize subsection names (case-insensitive, drop plurals, collapse punctuation),
+  - Detect synonyms (e.g., "Planner settings" == "Planner Motion"),
+  - Report only subsections that are actually relevant to persisted fields (instead of every comment header).
+  I can implement this refinement if you want the script to be more forgiving.
+
+Which option do you prefer?
+- If you want the fastest path to fix the EEPROM offset bug and get M501 working again for users, say "Move probe writes" and I'll create the patch to relocate the three EEPROM_WRITE calls into the `HAS_BED_PROBE` write block (and add a small comment explaining why).
+- If you need to preserve existing EEPROM contents for users, say "Add migration" and I'll implement a migration in `_load()` (I will request an M525 dump first to confirm old offsets if you want robust behavior).
+- If you want me to first normalize subsection names and re-run the test to reduce noise, say "Refine test" and I'll apply that.
+
+If you'd like, I can also produce a patch that both moves the writes and adds a defensive migration (belt-and-suspenders).
+
+Finally — small note about the test output you provided:
+- The test shows many missing subsections because it's strict — once you tell me which remediation you prefer I'll implement the code change and then you can re-run `python .\Marlin\test\test_eeprom_layout.py` and `M501`/`M525` to validate.
