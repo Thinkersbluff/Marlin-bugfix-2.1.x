@@ -1,0 +1,430 @@
+Screen: DGUSLCD_SCREEN_BOOT (0) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MAIN (28) -> VPList_Main
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_SDFILELIST (67) -> VPList_SDFileList
+  - VP_SD_FileName0: OK (has send handler)
+  - VP_SD_FileName1: OK (has send handler)
+  - VP_SD_FileName2: OK (has send handler)
+  - VP_SD_FileName3: OK (has send handler)
+  - VP_SD_FileName4: OK (has send handler)
+  - VP_SD_FileName5: OK (has send handler)
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PRINT_FINISH (36) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PRINT_RUNNING (37) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PRINT_RUNNING_HOST (82) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PRINT_PAUSED_HOST (83) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PRINT_PAUSED (39) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TUNING (41) -> VPList_TuneScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_LED_TOGGLE: OK (has send handler)
+  - VP_FAN_TOGGLE: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TUNING_EXTRA (79) -> VPList_TuneExtraScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_RGB_NAV_BUTTON_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PREPARE (42) -> VPList_Prepare
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_INFO (51) -> VPList_Info
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PRINTER_BEDSIZE: OK (has send handler)
+  - VP_MARLIN_WEBSITE: OK (has send handler)
+  - VP_MARLIN_VERSION: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MOVE1MM (44) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MOVE10MM (43) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MOVE01MM (45) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_FEED (46) -> VPList_Feed
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_FILCHANGE_NOZZLE_TEMP: OK (has send handler)
+  - VP_FILCHANGE_LENGTH: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_SETUP (47) -> VPList_Control
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_LED_TOGGLE: OK (has send handler)
+  - VP_MUTE_ICON: OK (has send handler)
+  - VP_LEVELING_FADE_HEIGHT: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TEMP (48) -> VPList_Temp
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_FAN_TOGGLE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TEMP_PLA (49) -> VPList_PreheatPLASettings
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PREHEAT_PLA_HOTEND_TEMP: OK (has send handler)
+  - VP_PREHEAT_PLA_BED_TEMP: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TEMP_ABS (50) -> VPList_PreheatABSSettings
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PREHEAT_ABS_HOTEND_TEMP: OK (has send handler)
+  - VP_PREHEAT_ABS_BED_TEMP: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_ABL (52) -> VPList_ABL
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_LEVELING_FADE_HEIGHT: OK (has send handler)
+  - VP_NAV_CALIBRATE_PROBE: SKIPPED (send_to_display_handler == nullptr)
+
+Screen: DGUSLCD_SCREEN_LEVELING (53) -> VPList_Leveling
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_MESH_LEVEL_TEMP: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_POWER_LOSS (54) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_THERMAL_RUNAWAY (57) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_HEATING_FAILED (58) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_THERMISTOR_ERROR (59) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_AUTOHOME (61) -> VPList_PrintScreen
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_X_POSITION: OK (has send handler)
+  - VP_Y_POSITION: OK (has send handler)
+  - VP_Z_POSITION: OK (has send handler)
+  - VP_Z_POSITION_PRECISION: OK (has send handler)
+  - SP_X_POSITION: OK (has send handler)
+  - SP_Y_POSITION: OK (has send handler)
+  - SP_Z_POSITION: OK (has send handler)
+  - VP_Flowrate_E0: OK (has send handler)
+  - VP_Fan0_Percentage: OK (has send handler)
+  - VP_PrintProgress_Percentage: OK (has send handler)
+  - VP_PrintTimeProgressBar: OK (has send handler)
+  - VP_PrintTime: OK (has send handler)
+  - VP_PrintTimeWithRemainingVisible: OK (has send handler)
+  - VP_PrintTimeRemaining: OK (has send handler)
+  - VP_LINEAR_ADVANCE_FACTOR: OK (has send handler)
+  - VP_FWRETRACT_INDICATOR_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_DIALOG_PAUSE (38) -> VPList_None
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_DIALOG_STOP (40) -> VPList_DialogStop
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_INFOBOX (62) -> VPList_Basic
+  - VP_T_E0_Is: OK (has send handler)
+  - VP_T_E0_Set: OK (has send handler)
+  - VP_T_Bed_Is: OK (has send handler)
+  - VP_T_Bed_Set: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_BUSY_ANIM_STATE: MISSING (no DGUS_VP entry)
+
+Screen: DGUSLCD_SCREEN_CONFIRM (66) -> VPList_Basic
+  - VP_T_E0_Is: OK (has send handler)
+  - VP_T_E0_Set: OK (has send handler)
+  - VP_T_Bed_Is: OK (has send handler)
+  - VP_T_Bed_Set: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_BUSY_ANIM_STATE: MISSING (no DGUS_VP entry)
+
+Screen: DGUSLCD_SCREEN_POPUP (63) -> VPList_Basic
+  - VP_T_E0_Is: OK (has send handler)
+  - VP_T_E0_Set: OK (has send handler)
+  - VP_T_Bed_Is: OK (has send handler)
+  - VP_T_Bed_Set: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_BUSY_ANIM_STATE: MISSING (no DGUS_VP entry)
+
+Screen: DGUSLCD_SCREEN_ESTEPS_CALIBRATION (69) -> VPList_EstepsCalibration
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_ESTEPS_CURRENT: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_TEMP: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_LEFTOVER_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_MARK_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALCULATED_ESTEPS: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_PIDTUNE_CALIBRATION (68) -> VPList_PidTune
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PIDTUNE_TARGET_TEMP: OK (has send handler)
+  - VP_PIDTUNE_FAN_TOGGLE_ICON: OK (has send handler)
+  - VP_PIDTUNE_CYCLES: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_TUNEFWRETRACT (70) -> VPList_FWRetractTune
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_FWRETRACT_RETRACT_LENGTH: OK (has send handler)
+  - VP_FWRETRACT_RETRACT_FEEDRATE: OK (has send handler)
+  - VP_FWRETRACT_RETRACT_ZHOP: OK (has send handler)
+  - VP_FWRETRACT_RESTART_LENGTH: OK (has send handler)
+  - VP_FWRETRACT_RESTART_FEEDRATE: OK (has send handler)
+  - VP_FWRETRACT_TOGGLE_BUTTON_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_ESTEPS_CALIBRATION_RESULTS (71) -> VPList_EstepsCalibration
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_ESTEPS_CURRENT: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_TEMP: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_LEFTOVER_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALIBRATION_MARK_LENGTH: OK (has send handler)
+  - VP_ESTEPS_CALCULATED_ESTEPS: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_AXIS_SETTINGS_NAV (73) -> VPList_AxisSettingsNav
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_AXIS_SETTINGS_AXIS (74) -> VPList_AxisSettingsAxis
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_AXIS_SETTINGS_TITLE_ICON: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_STEPSMM: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_MAX_ACCEL: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_JERK: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_FEEDRATE: OK (has send handler)
+  - VP_AXIS_TMC_NAV_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_AXIS_SETTINGS_TMC (75) -> VPList_AxisSettingsTMC
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_TMCCURRENT: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_TMCSTEALTHCHOP_ICON: OK (has send handler)
+  - VP_AXIS_SETTINGS_AXIS_TMCHYBRIDTHRESHOLD: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_ADV_MOV_SETTINGS (76) -> VPList_AdvMovementSettings
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_MOV_MINIMUM_SEGMENT_TIME: OK (has send handler)
+  - VP_MOV_MINIMUM_FEEDRATE: OK (has send handler)
+  - VP_MOV_NORMAL_ACCELERATION: OK (has send handler)
+  - VP_MOV_RETRACT_ACCELERATION: OK (has send handler)
+  - VP_MOV_MINIMUM_TRAVEL_FEEDRATE: OK (has send handler)
+  - VP_MOV_MINIMUM_TRAVEL_ACCELERATION: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MISC_SETTINGS (77) -> VPList_MiscSettings
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_FILAMENTRUNOUT_SENSOR_TOGGLE_ICON: OK (has send handler)
+  - VP_PLR_TOGGLE_ICON: OK (has send handler)
+  - VP_STANDBY_BACKLIGHT_ICON: OK (has send handler)
+  - VP_SCREEN_BACKLIGHT_STANDBY: OK (has send handler)
+  - VP_SCREEN_BACKLIGHT: OK (has send handler)
+  - VP_SCREEN_STANDBY_TIME: OK (has send handler)
+  - VP_RGB_NAV_BUTTON_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_MESH_VALIDATION (78) -> VPList_MeshValidation
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_MESHPATTERN_NOZZLE_TEMP: OK (has send handler)
+  - VP_MESHPATTERN_BED_TEMP: OK (has send handler)
+  - VP_MESHPATTERN_BUTTON_ICON: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_CALIBRATE (80) -> VPList_Calibrate
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_CALIBRATE_PROBE (84) -> VPList_CalibrateProbe
+  - VP_Z_OFFSET: OK (has send handler)
+  - VP_Feedrate_Percentage: OK (has send handler)
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_PROBE_OFF_AT: OK (has send handler)
+
+Screen: DGUSLCD_SCREEN_RGB (81) -> VPList_RGB
+  - VP_BACK_BUTTON_STATE: OK (has send handler)
+  - VP_RGB_CONTROL_R: OK (has send handler)
+  - VP_RGB_CONTROL_G: OK (has send handler)
+  - VP_RGB_CONTROL_B: OK (has send handler)
+  - VP_RGB_CONTROL_W: OK (has send handler)
+  - VP_RGB_CONTROL_I: OK (has send handler)
+
+PS C:\Users\BadBa\Marlin-bugfix-2.1.x> 
