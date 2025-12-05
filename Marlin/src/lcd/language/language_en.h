@@ -75,7 +75,11 @@ namespace LanguageNarrow_en {
   LSTR LANGUAGE                           = _UxGT("English");
 
   // These strings should be translated
-  LSTR WELCOME_MSG                        = MACHINE_NAME_SUBST _UxGT(" Ready.");
+  // Show the short build version on the welcome line instead of the
+  // configured machine name. This makes the boot message display the
+  // firmware short version (e.g. "Pre2.0.1") which is useful for
+  // traceability on devices where MACHINE_NAME is configurable.
+  LSTR WELCOME_MSG                        = SHORT_BUILD_VERSION _UxGT(" Ready.");
   LSTR MSG_YES                            = _UxGT("YES");
   LSTR MSG_NO                             = _UxGT("NO");
   LSTR MSG_HIGH                           = _UxGT("HIGH");

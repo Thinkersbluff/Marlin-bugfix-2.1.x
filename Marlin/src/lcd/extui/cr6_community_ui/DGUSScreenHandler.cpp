@@ -2249,9 +2249,17 @@ bool DGUSScreenHandler::loop() {
     static bool booted = false;
 
     if (!booted) {
-      progmem_str message = GET_TEXT_F(WELCOME_MSG);
-      char buff[strlen_P((const char * const)message)+1];
-      strcpy_P(buff, (const char * const) message);
+      // Expand the welcome message so CONFIGURABLE_MACHINE_NAME is substituted
+      // (Marlin's language macros use MACHINE_NAME_SUBST which may emit "$"
+      // when configurable names are enabled; expand it to the real name).
+      // This ensures the boot line shows the configured machine name
+      // (e.g. "Creality CR6-SE Ready") instead of the literal "$ Ready.".
+      char buff[MAX_MESSAGE_SIZE + 1];
+      // WELCOME_MSG may contain substitution tokens; when a configurable
+      // machine name is not enabled the SHORT_BUILD_VERSION is used and no
+      // substitution string is required. Use the no-substitution overload
+      // so we don't reference `machine_name` when it's not defined.
+      expand_u8str_P(buff, GET_TEXT(WELCOME_MSG), 0);
       ExtUI::onStatusChanged((const char *)buff);
 
       int16_t percentage = static_cast<int16_t>(((float) ms / (float)BOOTSCREEN_TIMEOUT) * 100);

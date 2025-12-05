@@ -37,7 +37,11 @@ namespace LanguageNarrow_an {
   constexpr uint8_t CHARSIZE              = 1;
   LSTR LANGUAGE                           = _UxGT("Aragonese");
 
-  LSTR WELCOME_MSG                        = MACHINE_NAME_SUBST _UxGT(" parada.");
+  // Show the short build version on the welcome line instead of the
+  // configured machine name. This makes the boot message display the
+  // firmware short version (e.g. "Pre2.0.1") which is useful for
+  // traceability on devices where MACHINE_NAME is configurable.
+  LSTR WELCOME_MSG                        = SHORT_BUILD_VERSION _UxGT(" parada.");
   LSTR MSG_MEDIA_INSERTED                 = _UxGT("Tarcheta mesa");
   LSTR MSG_MEDIA_REMOVED                  = _UxGT("Tarcheta sacada");
   LSTR MSG_LCD_ENDSTOPS                   = _UxGT("Endstops"); // Max length 8 characters
