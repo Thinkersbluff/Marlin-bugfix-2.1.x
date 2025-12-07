@@ -32,7 +32,7 @@
 /**
  * Marlin release version identifier
  */
-#define SHORT_BUILD_VERSION "Pre2.0.1"
+#define SHORT_BUILD_VERSION "Pre2.0.2"
 
 /**
  * Verbose version identifier which should contain a reference to the location
