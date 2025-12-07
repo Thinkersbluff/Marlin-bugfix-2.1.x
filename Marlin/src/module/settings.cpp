@@ -35,7 +35,7 @@
  *       either sets a Sane Default, or results in No Change to the existing value.
  */
 
-#define EEPROM_VERSION "V94"
+#define EEPROM_VERSION "V95"
 #define EEPROM_OFFSET 100
 
 
@@ -55,6 +55,10 @@
 #include "../libs/vector_3.h"   // for matrix_3x3
 #include "../gcode/gcode.h"
 #include "../MarlinCore.h"
+
+#if ENABLED(STABLE_Z_HOME)
+#include "stable_z_home.h"
+#endif
 
 #if ANY(EEPROM_SETTINGS, SD_FIRMWARE_UPDATE)
   #include "../HAL/shared/eeprom_api.h"
@@ -289,6 +293,13 @@ typedef struct SettingsDataStruct {
   //
   #if NUM_AXES
     xyz_pos_t probe_offset;                             // M851 X Y Z
+  #endif
+
+  // STABLE_Z_HOME - persisted parameters
+  #if ENABLED(STABLE_Z_HOME)
+    uint16_t stable_z_home_max_probes;                 // STABLE_Z_HOME_MAX_PROBES
+    uint8_t  stable_z_home_window_size;                // STABLE_Z_HOME_WINDOW_SIZE
+    float    stable_z_home_retry_tolerance;            // STABLE_Z_HOME_RETRY_TOLERANCE
   #endif
 
   //
@@ -1238,6 +1249,14 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
         constexpr xyz_pos_t zpo{0};
       #endif
       EEPROM_WRITE(zpo);
+
+      // STABLE_Z_HOME persisted params
+      #if ENABLED(STABLE_Z_HOME)
+        _FIELD_TEST(stable_z_home_max_probes);
+        EEPROM_WRITE(stable_z_home_max_probes);
+        EEPROM_WRITE(stable_z_home_window_size);
+        EEPROM_WRITE(stable_z_home_retry_tolerance);
+      #endif
 
 
 
@@ -2346,6 +2365,21 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
 
         #if HAS_BED_PROBE
           if (!validating) probe.offset = zpo;
+        #endif
+
+        // STABLE_Z_HOME persisted params
+        #if ENABLED(STABLE_Z_HOME)
+          uint16_t _szh_max_probes;
+          uint8_t  _szh_window_size;
+          float    _szh_retry_tolerance;
+          EEPROM_READ(_szh_max_probes);
+          EEPROM_READ(_szh_window_size);
+          EEPROM_READ(_szh_retry_tolerance);
+          if (!validating) {
+            stable_z_home_max_probes = _szh_max_probes;
+            stable_z_home_window_size = _szh_window_size;
+            stable_z_home_retry_tolerance = _szh_retry_tolerance;
+          }
         #endif
       }
       #endif
@@ -3700,6 +3734,11 @@ void MarlinSettings::reset() {
   //
   TERN_(TOUCH_SCREEN_CALIBRATION, touch_calibration.calibration_reset());
 
+  // STABLE_Z_HOME defaults
+  #if ENABLED(STABLE_Z_HOME)
+    stable_z_home_defaults();
+  #endif
+
   //
   // Buzzer enable/disable
   //
@@ -4321,6 +4360,14 @@ void MarlinSettings::reset() {
     // Probe Offset
     //
     TERN_(HAS_BED_PROBE, gcode.M851_report(forReplay));
+
+    #if ENABLED(STABLE_Z_HOME)
+      CONFIG_ECHO_HEADING("Stable Z Home");
+      CONFIG_ECHO_MSG("  STABLE_Z_HOME_MAX_PROBES:", stable_z_home_max_probes);
+      CONFIG_ECHO_MSG("  STABLE_Z_HOME_WINDOW_SIZE:", stable_z_home_window_size);
+      CONFIG_ECHO_MSG("  STABLE_Z_HOME_RETRY_TOLERANCE:", p_float_t(stable_z_home_retry_tolerance, 6));
+      CONFIG_ECHO_MSG_P("  M1128 Pnn Wnn Tnn.n Xnn.n Ynn.n ; Stable Z home. Use M500 to save P/W/T to EEPROM.");
+    #endif
 
     //
     // Bed Skew Correction

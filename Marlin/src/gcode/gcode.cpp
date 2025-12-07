@@ -613,6 +613,10 @@ void GcodeSuite::process_parsed_command(bool no_ok/*=false*/) {
         // breaking change. Both dispatch to the same handler.
         case 1125: case 1135: M1125(); break;
       #endif
+
+      #if ENABLED(STABLE_Z_HOME)
+        case 1128: M1128(); break;                                // M1128: Stable Z Home
+      #endif
       #if ENABLED(HOST_KEEPALIVE_FEATURE)
         case 113: M113(); break;                                  // M113: Set Host Keepalive interval
       #endif

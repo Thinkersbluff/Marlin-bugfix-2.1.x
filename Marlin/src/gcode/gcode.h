@@ -1334,6 +1334,10 @@ private:
   // Custom Pause/Resume used by CR6 community UI
   static void M1125();
 
+  // Stable Z Home (M1128) - declared unconditionally so a stub
+  // implementation can be provided when the feature is disabled.
+  static void M1128();
+
   #if DGUS_LCD_UI_MKS
     static void M1002();
   #endif
