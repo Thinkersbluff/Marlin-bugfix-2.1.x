@@ -38,14 +38,14 @@
  * Verbose version identifier which should contain a reference to the location
  * from where the binary was downloaded or the source code was compiled.
  */
-#define DETAILED_BUILD_VERSION "CR6_2.1.x_Pre2.0.1_MB"
+#define DETAILED_BUILD_VERSION "CR6_2.1.x_Pre2.0.2_MB"
 
 /**
  * The STRING_DISTRIBUTION_DATE represents when the binary file was built,
  * here we define this default string as the date where the latest release
  * version was tagged.
  */
-#define STRING_DISTRIBUTION_DATE "2025-12-02 22:44"
+#define STRING_DISTRIBUTION_DATE "2025-12-06 19:50"
 
 /**
  * The protocol for communication to the host. Protocol indicates communication
