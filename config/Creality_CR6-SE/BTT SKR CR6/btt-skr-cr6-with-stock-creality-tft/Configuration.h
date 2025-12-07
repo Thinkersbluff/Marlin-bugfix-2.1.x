@@ -114,7 +114,7 @@
 //#define BLUETOOTH
 
 // Name displayed in the LCD "Ready" message and Info menu
-#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.1" // Add G-code M550 to set/report the machine name
+#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.2" // Add G-code M550 to set/report the machine name
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -2365,6 +2365,27 @@
   #define Z_SAFE_HOMING_X_POINT X_CENTER  // (mm) X point for Z homing
   #define Z_SAFE_HOMING_Y_POINT Y_CENTER  // (mm) Y point for Z homing
   //#define Z_SAFE_HOMING_POINT_ABSOLUTE  // Ignore home offsets (M206) for Z homing position
+#endif
+
+// --------------------------------------------------------------------------
+// STABLE_Z_HOME
+//
+// Optional feature to detect a "stable" probe reading window when homing Z.
+// Enables runtime-configurable parameters used by the stable Z home module
+// (see `src/module/stable_z_home.{h,cpp}` and `M1128`).
+//
+// To enable, uncomment the next line and adjust the parameters as desired.
+//#define STABLE_Z_HOME
+
+#if ENABLED(STABLE_Z_HOME)
+  // Max attempts/probes to try when searching for a stable mean (probes)
+  #define STABLE_Z_HOME_MAX_PROBES     20
+
+  // Number of most-recent samples to consider when evaluating stability
+  #define STABLE_Z_HOME_WINDOW_SIZE    4
+
+  // Tolerance (max - min) within a window to consider it "stable" (in mm)
+  #define STABLE_Z_HOME_RETRY_TOLERANCE 0.01f
 #endif
 
 // Homing speeds (linear=mm/min, rotational=°/min)
