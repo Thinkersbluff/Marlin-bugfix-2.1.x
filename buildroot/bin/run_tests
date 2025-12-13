@@ -40,6 +40,33 @@ export -f exec_test
 
 printf "Running \033[0;32m$2\033[0m Tests\n"
 
+# If the caller requested a specific unit test (test_...), run only the
+# native unit-test environment to execute Unity tests. This keeps the
+# original per-board behavior unchanged while allowing callers to run
+# a single Unity test by passing its test directory name (e.g.:
+#     run_tests . <any> test_stable_z_home
+# The direct native test invocation below will build/run
+# `linux_native_test` with the provided test filter.
+if [[ -n "$3" && "$3" =~ ^test_ ]] ; then
+  printf "Detected unit test filter '%s' — running only linux_native_test (minimal setup)\n" "$3"
+  # Perform minimal setup similar to buildroot/tests/linux_native but avoid
+  # failing `opt_enable` calls for optional defines. This ensures the
+  # `MOTHERBOARD` is set to a simulated target so PlatformIO builds the
+  # native test environment (not DUE or other platform-specific HALs).
+  restore_configs
+  $(dirname "$0")/opt_set MOTHERBOARD BOARD_SIMULATED TEMP_SENSOR_BED 1 || true
+  # Build environment (clean) and then run the native test env with the filter
+  exec_test $1 "linux_native_test --target clean" "Setup Build Environment"
+  exec_test $1 "linux_native_test" "$3" "$3"
+  if [[ $GIT_RESET_HARD == "true" ]]; then
+    git reset --hard HEAD
+  else
+    restore_configs
+  fi
+  printf "\033[0;32mAll tests completed successfully\033[0m\n"
+  exit 0
+fi
+
 if [[ $2 = "ALL" ]]; then
   tests=("$TESTS"/*)
   for f in "${tests[@]}"; do
@@ -55,6 +82,56 @@ if [[ $2 = "ALL" ]]; then
 else
   exec_test $1 "$2 --target clean" "Setup Build Environment"
   test_name="$3"
+  # Normalize test key (basename) for lookup in test/allowed_boards.json
+  test_key="$test_name"
+  # If test looks like a path, use its basename (e.g. extui/cr6_community_ui -> cr6_community_ui)
+  if [[ "$test_key" == *"/"* || "$test_key" == *"\\"* ]]; then
+    test_key=$(basename "$test_key")
+  fi
+  # If an allowed-boards mapping exists (project-root `test/allowed_boards.json` or buildroot/test),
+  # and contains an entry for this test, run only those envs instead of the full per-board wrapper.
+  mapping_file="$1/test/allowed_boards.json"
+  if [[ ! -f "$mapping_file" ]]; then
+    mapping_file="$HERE/../test/allowed_boards.json"
+  fi
+  if [[ -f "$mapping_file" && -n "$test_key" ]]; then
+    # Parse JSON mapping without requiring Python (awk/sed fallback)
+    allowed=$(awk -v k="\"$test_key\"" 'BEGIN{p=0} { if(p==1){ if($0 ~ /\]/){ print; exit } print } if(index($0,k)) p=1 }' "$mapping_file" | tr -d '[]"' | tr -d ' ' | tr '\n' ',' | sed 's/,$//') || true
+    if [[ -n "$allowed" ]]; then
+      IFS=',' read -r -a envs <<< "$allowed"
+      # Run a clean for the first env, then run each env for the requested test
+      first=true
+      for env in "${envs[@]}"; do
+        if [[ "$first" == true ]]; then
+          exec_test $1 "$env --target clean" "Setup Build Environment"
+          first=false
+        fi
+        # After restore_configs in per-test scripts, ensure BAUD_RATE_GCODE exists in the config so opt_enable can find it
+        $(dirname "$0")/opt_set BAUD_RATE_GCODE 115200 || true
+        # Set MOTHERBOARD to the expected board for certain envs (small mapping for CR6 UI)
+        case "$env" in
+          STM32F103RE_btt_USB)
+            $(dirname "$0")/opt_set MOTHERBOARD BOARD_BTT_SKR_CR6 || true
+            $(dirname "$0")/opt_set EXTRUDERS 1 || true
+            $(dirname "$0")/opt_disable SINGLENOZZLE || true
+            ;;
+          STM32F103RE_creality)
+            $(dirname "$0")/opt_set MOTHERBOARD BOARD_CREALITY_V452 || true
+            $(dirname "$0")/opt_set EXTRUDERS 1 || true
+            $(dirname "$0")/opt_disable SINGLENOZZLE || true
+            ;;
+        esac
+        exec_test $1 "$env" "$test_name" "$test_name"
+      done
+      if [[ $GIT_RESET_HARD == "true" ]]; then
+        git reset --hard HEAD
+      else
+        restore_configs
+      fi
+      printf "\033[0;32mAll tests completed successfully\033[0m\n"
+      exit 0
+    fi
+  fi
   # If the test name is 1 or 2 digits, treat it as an index
   if [[ "$test_name" =~ ^[0-9][0-9]?$ ]] ; then
     # Find the test name that corresponds to that index

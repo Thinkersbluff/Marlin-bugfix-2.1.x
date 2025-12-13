@@ -66,11 +66,6 @@ applet/
 *.a
 *.lib
 
-# Executables
-*.exe
-*.out
-*.app
-
 # Compiled C Object files
 *.o
 *.ko
@@ -104,6 +99,7 @@ applet/
 # Debug files
 *.dSYM/
 *.su
+*.log
 
 # PlatformIO files/dirs
 .pio*
@@ -177,3 +173,4 @@ tags
 .aider*
 !.aiderignore
 .env
+*.csv
