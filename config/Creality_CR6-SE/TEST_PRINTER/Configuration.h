@@ -137,7 +137,8 @@
 //#define BLUETOOTH
 
 // Name displayed in the LCD "Ready" message and Info menu
-#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.1" // Add G-code M550 to set/report the machine name
+#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.2" 
+//#define CONFIGURABLE_MACHINE_NAME // Add G-code M550 to set/report the machine name
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -931,7 +932,7 @@
  * *** IT IS HIGHLY RECOMMENDED TO LEAVE THIS OPTION ENABLED! ***
  */
 #define PREVENT_COLD_EXTRUSION
-#define EXTRUDE_MINTEMP 195
+#define EXTRUDE_MINTEMP 180
 
 /**
  * Prevent a single extrusion longer than EXTRUDE_MAXLENGTH.
@@ -1243,11 +1244,11 @@
  * Set to the state (HIGH or LOW) that applies to each endstop.
  */
 #define X_MIN_ENDSTOP_HIT_STATE HIGH
-//#define X_MAX_ENDSTOP_HIT_STATE HIGH
+#define X_MAX_ENDSTOP_HIT_STATE HIGH
 #define Y_MIN_ENDSTOP_HIT_STATE HIGH
-//#define Y_MAX_ENDSTOP_HIT_STATE HIGH
+#define Y_MAX_ENDSTOP_HIT_STATE HIGH
 #define Z_MIN_ENDSTOP_HIT_STATE HIGH
-//#define Z_MAX_ENDSTOP_HIT_STATE HIGH
+#define Z_MAX_ENDSTOP_HIT_STATE HIGH
 #define I_MIN_ENDSTOP_HIT_STATE HIGH
 #define I_MAX_ENDSTOP_HIT_STATE HIGH
 #define J_MIN_ENDSTOP_HIT_STATE HIGH
@@ -1696,12 +1697,13 @@
  */
 // CR-6 SE optical sensor on PB2 - prevents false triggers during travel
 // #define DEBUG_LEVELING_FEATURE
+// #define PROBE_DEBUG
 #define PROBE_ACTIVATION_SWITCH
 #if ENABLED(PROBE_ACTIVATION_SWITCH)
   #define PROBE_ACTIVATION_SWITCH_STATE LOW // State indicating probe is active
-  #define PROBE_ACTIVATION_SWITCH_PIN PB2 // Default from pins file
+  //#define PROBE_ACTIVATION_SWITCH_PIN PB2 // Override default pin
   #define PROBE_EN_OFF_HEIGHT_DEFAULT 15 // (mm) default value for the M905 calibration 'a' parameter
-  #define PROBE_EN_OFF_MARGIN 1 // (mm)
+  #define PROBE_EN_OFF_MARGIN 0 // (mm)
   #define M905_STEP_SETTLE_MS 50
 #endif
 
@@ -1715,7 +1717,7 @@
   #define PROBE_TARE_TIME  100    // (ms) Time to hold tare pin
   #define PROBE_TARE_DELAY 50    // (ms) Delay after tare before probing
   #define PROBE_TARE_STATE HIGH   // State to write pin for tare
-  #define PROBE_TARE_PIN PA5    // Override default pin
+  //#define PROBE_TARE_PIN PA5    // Override default pin
   //#define PROBE_TARE_MENU       // Display a menu item to tare the probe
   #if ENABLED(PROBE_ACTIVATION_SWITCH)
     #define PROBE_TARE_ONLY_WHILE_INACTIVE  // Fail to tare/probe if PROBE_ACTIVATION_SWITCH is active
@@ -1775,8 +1777,8 @@
 //#define PROBE_OFFSET_XMAX  50   // (mm)
 //#define PROBE_OFFSET_YMIN -50   // (mm)
 //#define PROBE_OFFSET_YMAX  50   // (mm)
-#define PROBE_OFFSET_ZMIN   -10   // (mm)
-#define PROBE_OFFSET_ZMAX    10   // (mm)
+#define PROBE_OFFSET_ZMIN   -2   // (mm)
+#define PROBE_OFFSET_ZMAX    2   // (mm)
 
 // Enable the M48 repeatability test to test probe accuracy
 #define Z_MIN_PROBE_REPEATABILITY_TEST
@@ -1814,11 +1816,17 @@
 // @section stepper drivers
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
-// :{ 0:'Low', 1:'High' }
-#define X_ENABLE_ON 0
-#define Y_ENABLE_ON 0
-#define Z_ENABLE_ON 0
-#define E_ENABLE_ON 0 // For all extruders
+// :['LOW', 'HIGH']
+#define X_ENABLE_ON LOW
+#define Y_ENABLE_ON LOW
+#define Z_ENABLE_ON LOW
+#define E_ENABLE_ON LOW // For all extruders
+//#define I_ENABLE_ON LOW
+//#define J_ENABLE_ON LOW
+//#define K_ENABLE_ON LOW
+//#define U_ENABLE_ON LOW
+//#define V_ENABLE_ON LOW
+//#define W_ENABLE_ON LOW
 
 // Disable axis steppers immediately when they're not being stepped.
 // WARNING: When motors turn off there is a chance of losing position accuracy!
@@ -2388,6 +2396,27 @@
   #define Z_SAFE_HOMING_X_POINT X_CENTER  // (mm) X point for Z homing
   #define Z_SAFE_HOMING_Y_POINT Y_CENTER  // (mm) Y point for Z homing
   //#define Z_SAFE_HOMING_POINT_ABSOLUTE  // Ignore home offsets (M206) for Z homing position
+#endif
+
+// --------------------------------------------------------------------------
+// STABLE_Z_HOME
+//
+// Optional feature to detect a "stable" probe reading window when homing Z.
+// Enables runtime-configurable parameters used by the stable Z home module
+// (see `src/module/stable_z_home.{h,cpp}` and `M1128`).
+//
+// To enable, uncomment the next line and adjust the parameters as desired.
+#define STABLE_Z_HOME
+
+#if ENABLED(STABLE_Z_HOME)
+  // Max attempts/probes to try when searching for a stable mean (probes)
+  #define STABLE_Z_HOME_MAX_PROBES     20
+
+  // Number of most-recent samples to consider when evaluating stability
+  #define STABLE_Z_HOME_WINDOW_SIZE    4
+
+  // Tolerance (max - min) within a window to consider it "stable" (in mm)
+  #define STABLE_Z_HOME_RANGE_TOLERANCE 0.02f
 #endif
 
 // Homing speeds (linear=mm/min, rotational=°/min)

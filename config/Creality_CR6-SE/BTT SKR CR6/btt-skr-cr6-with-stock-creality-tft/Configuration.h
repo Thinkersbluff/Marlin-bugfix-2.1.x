@@ -114,7 +114,8 @@
 //#define BLUETOOTH
 
 // Name displayed in the LCD "Ready" message and Info menu
-#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.2" // Add G-code M550 to set/report the machine name
+#define CUSTOM_MACHINE_NAME "2.1.x_Pre2.0.2" 
+//#define CONFIGURABLE_MACHINE_NAME // Add G-code M550 to set/report the machine name
 
 // Printer's unique ID, used by some programs to differentiate between machines.
 // Choose your own or use a service like https://www.uuidgenerator.net/version4
@@ -627,7 +628,7 @@
 
 // Below this temperature the heater will be switched off
 // because it probably indicates a broken thermistor wire.
-#define HEATER_0_MINTEMP   5
+#define HEATER_0_MINTEMP   0
 #define HEATER_1_MINTEMP   5
 #define HEATER_2_MINTEMP   5
 #define HEATER_3_MINTEMP   5
@@ -635,7 +636,7 @@
 #define HEATER_5_MINTEMP   5
 #define HEATER_6_MINTEMP   5
 #define HEATER_7_MINTEMP   5
-#define BED_MINTEMP        5
+#define BED_MINTEMP        0
 #define CHAMBER_MINTEMP    5
 
 // Above this temperature the heater will be switched off.
@@ -908,7 +909,7 @@
  * *** IT IS HIGHLY RECOMMENDED TO LEAVE THIS OPTION ENABLED! ***
  */
 #define PREVENT_COLD_EXTRUSION
-#define EXTRUDE_MINTEMP 195
+#define EXTRUDE_MINTEMP 180
 
 /**
  * Prevent a single extrusion longer than EXTRUDE_MAXLENGTH.
@@ -1220,11 +1221,11 @@
  * Set to the state (HIGH or LOW) that applies to each endstop.
  */
 #define X_MIN_ENDSTOP_HIT_STATE HIGH
-//#define X_MAX_ENDSTOP_HIT_STATE HIGH
+#define X_MAX_ENDSTOP_HIT_STATE HIGH
 #define Y_MIN_ENDSTOP_HIT_STATE HIGH
-//#define Y_MAX_ENDSTOP_HIT_STATE HIGH
+#define Y_MAX_ENDSTOP_HIT_STATE HIGH
 #define Z_MIN_ENDSTOP_HIT_STATE HIGH
-//#define Z_MAX_ENDSTOP_HIT_STATE HIGH
+#define Z_MAX_ENDSTOP_HIT_STATE HIGH
 #define I_MIN_ENDSTOP_HIT_STATE HIGH
 #define I_MAX_ENDSTOP_HIT_STATE HIGH
 #define J_MIN_ENDSTOP_HIT_STATE HIGH
@@ -1673,10 +1674,11 @@
  */
 // CR-6 SE optical sensor on PB2 - prevents false triggers during travel
 // #define DEBUG_LEVELING_FEATURE
+// #define PROBE_DEBUG
 #define PROBE_ACTIVATION_SWITCH
 #if ENABLED(PROBE_ACTIVATION_SWITCH)
   #define PROBE_ACTIVATION_SWITCH_STATE LOW // State indicating probe is active
-  #define PROBE_ACTIVATION_SWITCH_PIN PC6 // Default from pins file
+ // #define PROBE_ACTIVATION_SWITCH_PIN PC2 // Override default pin
   #define PROBE_EN_OFF_HEIGHT_DEFAULT 15 // (mm) default value for the M905 calibration 'a' parameter
   #define PROBE_EN_OFF_MARGIN 1 // (mm)
   #define M905_STEP_SETTLE_MS 50
@@ -1692,7 +1694,7 @@
   #define PROBE_TARE_TIME  100    // (ms) Time to hold tare pin
   #define PROBE_TARE_DELAY 50    // (ms) Delay after tare before probing
   #define PROBE_TARE_STATE HIGH   // State to write pin for tare
-  #define PROBE_TARE_PIN PA5    // Override default pin
+//  #define PROBE_TARE_PIN PA1    // Override default pin
   //#define PROBE_TARE_MENU       // Display a menu item to tare the probe
   #if ENABLED(PROBE_ACTIVATION_SWITCH)
     #define PROBE_TARE_ONLY_WHILE_INACTIVE  // Fail to tare/probe if PROBE_ACTIVATION_SWITCH is active
@@ -1791,11 +1793,17 @@
 // @section stepper drivers
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
-// :{ 0:'Low', 1:'High' }
-#define X_ENABLE_ON 0
-#define Y_ENABLE_ON 0
-#define Z_ENABLE_ON 0
-#define E_ENABLE_ON 0 // For all extruders
+// :['LOW', 'HIGH']
+#define X_ENABLE_ON LOW
+#define Y_ENABLE_ON LOW
+#define Z_ENABLE_ON LOW
+#define E_ENABLE_ON LOW // For all extruders
+//#define I_ENABLE_ON LOW
+//#define J_ENABLE_ON LOW
+//#define K_ENABLE_ON LOW
+//#define U_ENABLE_ON LOW
+//#define V_ENABLE_ON LOW
+//#define W_ENABLE_ON LOW
 
 // Disable axis steppers immediately when they're not being stepped.
 // WARNING: When motors turn off there is a chance of losing position accuracy!
@@ -2375,7 +2383,7 @@
 // (see `src/module/stable_z_home.{h,cpp}` and `M1128`).
 //
 // To enable, uncomment the next line and adjust the parameters as desired.
-//#define STABLE_Z_HOME
+#define STABLE_Z_HOME
 
 #if ENABLED(STABLE_Z_HOME)
   // Max attempts/probes to try when searching for a stable mean (probes)
@@ -2385,7 +2393,7 @@
   #define STABLE_Z_HOME_WINDOW_SIZE    4
 
   // Tolerance (max - min) within a window to consider it "stable" (in mm)
-  #define STABLE_Z_HOME_RETRY_TOLERANCE 0.01f
+  #define STABLE_Z_HOME_RANGE_TOLERANCE 0.01f
 #endif
 
 // Homing speeds (linear=mm/min, rotational=°/min)

@@ -2375,7 +2375,7 @@
 // (see `src/module/stable_z_home.{h,cpp}` and `M1128`).
 //
 // To enable, uncomment the next line and adjust the parameters as desired.
-//#define STABLE_Z_HOME
+#define STABLE_Z_HOME
 
 #if ENABLED(STABLE_Z_HOME)
   // Max attempts/probes to try when searching for a stable mean (probes)
@@ -2385,7 +2385,7 @@
   #define STABLE_Z_HOME_WINDOW_SIZE    4
 
   // Tolerance (max - min) within a window to consider it "stable" (in mm)
-  #define STABLE_Z_HOME_RETRY_TOLERANCE 0.01f
+  #define STABLE_Z_HOME_RANGE_TOLERANCE 0.01f
 #endif
 
 
