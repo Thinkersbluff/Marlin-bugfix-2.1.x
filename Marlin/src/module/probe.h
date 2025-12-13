@@ -184,7 +184,10 @@ public:
       const bool         sanity_check       = true,
       const float        z_min_point        = Z_PROBE_LOW_POINT,
       const float        z_clearance        = Z_TWEEN_SAFE_CLEARANCE,
-      const bool         raise_after_is_rel = false
+      const bool         raise_after_is_rel = false,
+      /* out */ float   *out_triggers      = nullptr,
+      const uint8_t      out_trig_cap       = 0,
+      /* out */ uint8_t *out_trig_count     = nullptr
     );
 
     static float probe_at_point(
@@ -195,9 +198,12 @@ public:
       const bool         sanity_check       = true,
       const float        z_min_point        = Z_PROBE_LOW_POINT,
       const float        z_clearance        = Z_TWEEN_SAFE_CLEARANCE,
-      const bool         raise_after_is_rel = false
+      const bool         raise_after_is_rel = false,
+      /* out */ float   *out_triggers      = nullptr,
+      const uint8_t      out_trig_cap       = 0,
+      /* out */ uint8_t *out_trig_count     = nullptr
     ) {
-      return probe_at_point(pos.x, pos.y, raise_after, verbose_level, probe_relative, sanity_check, z_min_point, z_clearance, raise_after_is_rel);
+      return probe_at_point(pos.x, pos.y, raise_after, verbose_level, probe_relative, sanity_check, z_min_point, z_clearance, raise_after_is_rel, out_triggers, out_trig_cap, out_trig_count);
     }
 
   #else // !HAS_BED_PROBE
@@ -367,7 +373,8 @@ public:
 private:
   #if HAS_BED_PROBE
     static bool probe_down_to_z(const float z, const feedRate_t fr_mm_s);
-    static float run_z_probe(const bool sanity_check=true, const float z_min_point=Z_PROBE_LOW_POINT, const float z_clearance=Z_TWEEN_SAFE_CLEARANCE);
+    static float run_z_probe(const bool sanity_check=true, const float z_min_point=Z_PROBE_LOW_POINT, const float z_clearance=Z_TWEEN_SAFE_CLEARANCE,
+      /* out */ float *out_triggers=nullptr, const uint8_t out_trig_cap=0, /* out */ uint8_t *out_trig_count=nullptr);
   #endif
 };
 

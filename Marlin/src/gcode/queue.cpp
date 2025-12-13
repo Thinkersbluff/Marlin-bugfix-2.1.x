@@ -543,9 +543,18 @@ void GCodeQueue::get_serial_commands() {
 
         #if DISABLED(EMERGENCY_PARSER)
           // Process critical commands early
+          // NOTE: Only treat as M112 (emergency kill) when the 4-digit code is
+          // exactly M112 or followed by a non-numeric terminator. This avoids
+          // false-positives for valid multi-digit codes such as M1125 or M1128
+          // which previously matched the fixed-offset check and caused a kill.
           if (command[0] == 'M') switch (command[3]) {
             case '8': if (command[2] == '0' && command[1] == '1') { wait_for_heatup = false; TERN_(HAS_MARLINUI_MENU, wait_for_user = false); } break;
-            case '2': if (command[2] == '1' && command[1] == '1') kill(FPSTR(M112_KILL_STR), nullptr, true); break;
+            case '2':
+              if (command[2] == '1' && command[1] == '1') {
+                // Only treat as M112 if the following character is NOT a digit
+                if (!NUMERIC(command[4])) kill(FPSTR(M112_KILL_STR), nullptr, true);
+              }
+              break;
             case '0': if (command[1] == '4' && command[2] == '1') quickstop_stepper(); break;
           }
         #endif

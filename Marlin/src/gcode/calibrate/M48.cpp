@@ -39,6 +39,11 @@
   #include "../../feature/probe_temp_comp.h"
 #endif
 
+#if ENABLED(EEPROM_SETTINGS)
+  #include "../../HAL/shared/eeprom_api.h"
+  #include "../../module/settings.h"
+#endif
+
 /**
  * M48: Z probe repeatability measurement function.
  *
@@ -57,6 +62,47 @@
  */
 
 void GcodeSuite::M48() {
+
+#if ENABLED(EEPROM_SETTINGS)
+  // Helper to emit stored M48 history without probing
+  const auto dump_history = []{
+    struct HistHeader { uint32_t magic; uint8_t count; uint8_t idx; uint16_t reserved; } hdr;
+    struct ProbeRepeatEntry { float mean_trigger; float sigma_trigger; uint16_t n_samples; float measured_range; uint32_t ts; } entry;
+    constexpr uint32_t PROBE_HIST_MAGIC = 0x50525248; // 'PRRH'
+    constexpr int PROBE_HIST_N = 8;
+    const int base = MarlinSettings::eeprom_offset() + MarlinSettings::datasize();
+    int pos = base;
+    persistentStore.access_start();
+    if (persistentStore.read_data(pos, (uint8_t*)&hdr, sizeof(hdr))) {
+      SERIAL_ECHOLNPGM("M48: no history found in EEPROM.");
+      persistentStore.access_finish();
+      return;
+    }
+    if (hdr.magic != PROBE_HIST_MAGIC) {
+      SERIAL_ECHOLNPGM("M48: history magic mismatch - no history recorded.");
+      persistentStore.access_finish();
+      return;
+    }
+    SERIAL_ECHOPGM("M48 EEPROM history count="); SERIAL_ECHOLN(hdr.count);
+    for (uint8_t i = 0; i < hdr.count; ++i) {
+      const uint8_t idx = (hdr.idx + PROBE_HIST_N - hdr.count + i) % PROBE_HIST_N;
+      const int entry_pos = base + sizeof(hdr) + idx * sizeof(entry);
+      persistentStore.read_data(entry_pos, (uint8_t*)&entry, sizeof(entry));
+      SERIAL_ECHOPGM("#"); SERIAL_ECHO(i + 1);
+      SERIAL_ECHOPGM(" mean="); SERIAL_ECHO(p_float_t(entry.mean_trigger, 6));
+      SERIAL_ECHOPGM(" sigma="); SERIAL_ECHO(p_float_t(entry.sigma_trigger, 6));
+      SERIAL_ECHOPGM(" n="); SERIAL_ECHO(entry.n_samples);
+      SERIAL_ECHOPGM(" range="); SERIAL_ECHO(p_float_t(entry.measured_range, 6)); SERIAL_EOL();
+    }
+    persistentStore.access_finish();
+  };
+
+  // If the user requested only history (H) with no other options, skip probing
+  const bool hist_only = parser.seen('H')
+    && !(parser.seen('P') || parser.seen('X') || parser.seen('Y') || parser.seen('V')
+       || parser.seen('E') || parser.seen('L') || parser.seen('S') || parser.seen('C') || parser.seen('W'));
+  if (hist_only) { dump_history(); return; }
+#endif
 
   if (homing_needed_error()) return;
 
@@ -126,13 +172,15 @@ void GcodeSuite::M48() {
 
   auto dev_report = [](const bool verbose, const float mean, const float sigma, const float min, const float max, const bool final=false) {
     if (verbose) {
-      SERIAL_ECHOPGM("Mean: ", p_float_t(mean, 6));
-      if (!final) SERIAL_ECHOPGM(" Sigma: ", p_float_t(sigma, 6));
-      SERIAL_ECHOPGM(" Min: ", p_float_t(min, 3), " Max: ", p_float_t(max, 3), " Range: ", p_float_t(max-min, 3));
+      SERIAL_ECHO_START(); SERIAL_ECHOPGM("Mean: "); SERIAL_ECHO(p_float_t(mean, 6));
+      if (!final) { SERIAL_ECHOPGM(" Sigma: "); SERIAL_ECHO(p_float_t(sigma, 6)); }
+      SERIAL_ECHOPGM(" Min: "); SERIAL_ECHO(p_float_t(min, 3));
+      SERIAL_ECHOPGM(" Max: "); SERIAL_ECHO(p_float_t(max, 3));
+      SERIAL_ECHOPGM(" Range: "); SERIAL_ECHO(p_float_t(max - min, 3)); SERIAL_EOL();
       if (final) SERIAL_EOL();
     }
     if (final) {
-      SERIAL_ECHOLNPGM("Standard Deviation: ", p_float_t(sigma, 6));
+      SERIAL_ECHO_START(); SERIAL_ECHOPGM("Standard Deviation: "); SERIAL_ECHO(p_float_t(sigma, 6)); SERIAL_EOL();
       SERIAL_EOL();
     }
   };
@@ -245,7 +293,8 @@ void GcodeSuite::M48() {
       sigma = SQRT(dev_sum / (n + 1));
 
       if (verbose_level > 1) {
-        SERIAL_ECHO(n + 1, F(" of "), n_samples, F(": z: "), p_float_t(pz, 3), C(' '));
+        SERIAL_ECHO_START(); SERIAL_ECHO(n + 1); SERIAL_ECHOPGM(" of "); SERIAL_ECHO(n_samples);
+        SERIAL_ECHOPGM(": z: "); SERIAL_ECHO(p_float_t(pz, 3)); SERIAL_CHAR(' ');
         dev_report(verbose_level > 2, mean, sigma, min, max);
         SERIAL_EOL();
       }
@@ -259,6 +308,66 @@ void GcodeSuite::M48() {
     SERIAL_ECHOLNPGM("Finished!");
     dev_report(verbose_level > 0, mean, sigma, min, max, true);
 
+#if ENABLED(EEPROM_SETTINGS)
+    // Optional: save this M48 run to EEPROM history if requested with W1
+    if (parser.boolval('W')) {
+      // History layout: header then N entries
+      struct HistHeader { uint32_t magic; uint8_t count; uint8_t idx; uint16_t reserved; } hdr;
+      struct ProbeRepeatEntry { float mean_trigger; float sigma_trigger; uint16_t n_samples; float measured_range; uint32_t ts; } entry;
+      constexpr uint32_t PROBE_HIST_MAGIC = 0x50525248; // 'PRRH'
+      constexpr int PROBE_HIST_N = 8;
+
+      const int base = MarlinSettings::eeprom_offset() + MarlinSettings::datasize();
+      int pos = base;
+      persistentStore.access_start();
+      // Read header if present
+      if (persistentStore.read_data(pos, (uint8_t*)&hdr, sizeof(hdr))) {
+        // read error -> initialize header
+        hdr.magic = PROBE_HIST_MAGIC;
+        hdr.count = 0;
+        hdr.idx = 0;
+        hdr.reserved = 0;
+        pos = base;
+        persistentStore.write_data(pos, (const uint8_t*)&hdr, sizeof(hdr));
+      }
+
+      // If header magic doesn't match, initialize
+      if (hdr.magic != PROBE_HIST_MAGIC) {
+        hdr.magic = PROBE_HIST_MAGIC;
+        hdr.count = 0;
+        hdr.idx = 0;
+        hdr.reserved = 0;
+        pos = base;
+        persistentStore.write_data(pos, (const uint8_t*)&hdr, sizeof(hdr));
+      }
+
+      // Prepare entry
+      entry.mean_trigger = mean;
+      entry.sigma_trigger = sigma;
+      entry.n_samples = uint16_t(n_samples);
+      entry.measured_range = max - min;
+      entry.ts = millis();
+
+      // Write entry at hdr.idx
+      const int entry_pos = base + sizeof(hdr) + hdr.idx * sizeof(entry);
+      persistentStore.write_data(entry_pos, (const uint8_t*)&entry, sizeof(entry));
+
+      // Update header
+      hdr.idx = (hdr.idx + 1) % PROBE_HIST_N;
+      if (hdr.count < PROBE_HIST_N) hdr.count++;
+      pos = base;
+      persistentStore.write_data(pos, (const uint8_t*)&hdr, sizeof(hdr));
+
+      persistentStore.access_finish();
+      SERIAL_ECHOLNPGM("M48: saved repeatability result to EEPROM history.");
+    }
+#endif
+
+
+#if ENABLED(EEPROM_SETTINGS)
+  // Dump history if requested with H (when combined with probing options)
+  if (parser.seen('H')) dump_history();
+#endif
     #if HAS_STATUS_MESSAGE
       // Display M48 results in the status bar
       if (MAX_MESSAGE_SIZE <= 20) {

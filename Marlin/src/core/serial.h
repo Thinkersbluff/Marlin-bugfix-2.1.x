@@ -169,6 +169,7 @@ void SERIAL_ECHOLN_P(PGM_P pstr);
 template<> void SERIAL_ECHO(const float f);
 template<> void SERIAL_ECHO(const p_float_t pf);
 template<> void SERIAL_ECHO(const w_float_t wf);
+template<> void SERIAL_ECHOLN(const p_float_t pf);
 
 // Specializations for F-string
 template<> void SERIAL_ECHO(FSTR_P const fstr);

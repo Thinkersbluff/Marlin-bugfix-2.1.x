@@ -9,7 +9,8 @@
 #if ENABLED(STABLE_Z_HOME)
 extern uint16_t stable_z_home_max_probes;
 extern uint8_t  stable_z_home_window_size;
-extern float    stable_z_home_retry_tolerance;
+extern float    stable_z_home_range_tolerance;
+extern float    stable_z_home_max_z_shift;
 
 void stable_z_home_defaults();
 

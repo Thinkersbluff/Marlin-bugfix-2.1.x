@@ -299,7 +299,7 @@ typedef struct SettingsDataStruct {
   #if ENABLED(STABLE_Z_HOME)
     uint16_t stable_z_home_max_probes;                 // STABLE_Z_HOME_MAX_PROBES
     uint8_t  stable_z_home_window_size;                // STABLE_Z_HOME_WINDOW_SIZE
-    float    stable_z_home_retry_tolerance;            // STABLE_Z_HOME_RETRY_TOLERANCE
+    float    stable_z_home_range_tolerance;            // STABLE_Z_HOME_RANGE_TOLERANCE
   #endif
 
   //
@@ -1255,7 +1255,8 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
         _FIELD_TEST(stable_z_home_max_probes);
         EEPROM_WRITE(stable_z_home_max_probes);
         EEPROM_WRITE(stable_z_home_window_size);
-        EEPROM_WRITE(stable_z_home_retry_tolerance);
+        EEPROM_WRITE(stable_z_home_range_tolerance);
+        EEPROM_WRITE(stable_z_home_max_z_shift);
       #endif
 
 
@@ -2378,7 +2379,7 @@ uint16_t MarlinSettings::get_m905_step_settle_ms() {
           if (!validating) {
             stable_z_home_max_probes = _szh_max_probes;
             stable_z_home_window_size = _szh_window_size;
-            stable_z_home_retry_tolerance = _szh_retry_tolerance;
+            stable_z_home_range_tolerance = _szh_retry_tolerance;
           }
         #endif
       }
@@ -4365,7 +4366,8 @@ void MarlinSettings::reset() {
       CONFIG_ECHO_HEADING("Stable Z Home");
       CONFIG_ECHO_MSG("  STABLE_Z_HOME_MAX_PROBES:", stable_z_home_max_probes);
       CONFIG_ECHO_MSG("  STABLE_Z_HOME_WINDOW_SIZE:", stable_z_home_window_size);
-      CONFIG_ECHO_MSG("  STABLE_Z_HOME_RETRY_TOLERANCE:", p_float_t(stable_z_home_retry_tolerance, 6));
+      CONFIG_ECHO_MSG("  STABLE_Z_HOME_RANGE_TOLERANCE:", p_float_t(stable_z_home_range_tolerance, 6));
+      CONFIG_ECHO_MSG("  STABLE_Z_HOME_MAX_Z_SHIFT:", p_float_t(stable_z_home_max_z_shift, 6));
       CONFIG_ECHO_MSG_P("  M1128 Pnn Wnn Tnn.n Xnn.n Ynn.n ; Stable Z home. Use M500 to save P/W/T to EEPROM.");
     #endif
 

@@ -147,6 +147,20 @@ void EmergencyParser::update(EmergencyParser::State &state, const uint8_t c) {
 
     case EP_M10: state = (c == '8') ? EP_M108 : EP_IGNORE; break;
     case EP_M11: state = (c == '2') ? EP_M112 : EP_IGNORE; break;
+
+    case EP_M112:
+      if (ISEOL(c)) {
+        if (enabled) killed_by_M112 = true;
+        state = EP_RESET;
+      }
+      else if (c == ' ') {
+        /* keep EP_M112: allow whitespace before EOL */
+      }
+      else {
+        /* any extra characters (including digits) after M112 mean this is not an exact M112 */
+        state = EP_IGNORE;
+      }
+      break;
     case EP_M4:  state = (c == '1') ? EP_M41  : EP_IGNORE; break;
     case EP_M41: state = (c == '0') ? EP_M410 : EP_IGNORE; break;
 

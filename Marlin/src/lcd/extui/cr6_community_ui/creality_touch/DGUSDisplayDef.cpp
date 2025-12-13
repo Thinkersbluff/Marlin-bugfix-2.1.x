@@ -224,11 +224,9 @@ const uint16_t VPList_Basic[] PROGMEM = {
   VP_T_Bed_Is,
   VP_T_Bed_Set,
 
-  // Include busy/throbber and back-button state so the INFOBOX
-  // screen (which uses VPList_Basic) can be updated to show a
-  // throbber when the firmware marks a synchronous operation.
-  VP_BACK_BUTTON_STATE,
-  VP_BUSY_ANIM_STATE,
+  // None of the popup screens have a throbber or back button, so omit these VPs.
+  // VP_BACK_BUTTON_STATE,
+  // VP_BUSY_ANIM_STATE,
 
   0x0000
 };

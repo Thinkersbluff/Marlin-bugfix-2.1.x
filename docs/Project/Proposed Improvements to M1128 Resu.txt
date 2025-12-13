@@ -1,0 +1,41 @@
+Proposed Improvements to M1128 Results Report
+
+Header: include the exact runtime inputs used (P/W/T/X/Y) and whether they were defaults or overridden.
+Per-Attempt Details: a compact, readable line per probe attempt showing:
+Attempt: number
+TriggerCount: number of raw triggers (if available)
+TriggerRange: tmax - tmin (mm)
+RawTriggers: optional short list (only when verbose)
+SampleValue: the per-call returned z (what M1128 used in sliding window)
+Example: M1128: Att=3 Trig=2 TrRange=0.002 Raw=[-0.123,-0.121] Z=0.1234
+Window Eval Log: when a window is evaluated print:
+WindowMin/WindowMax/WindowMean and WindowRange
+ConsecutivePasses: how many stable windows in a row
+Example: M1128: Window mean=0.1234 min=0.1229 max=0.1236 range=0.0007 consec=1
+Range-History Details: print the recent window ranges used in the range-history, so you can see their values and the computed variation (rh_max - rh_min).
+Example: M1128: RangeHistory=[0.0012,0.0010,0.0009] var=0.0003
+Final Decision Data: when PASS or FAIL, show the exact data that led to that decision:
+ChosenStatistic: mean/median/trimmed-mean value used for the final "stable" estimate
+FinalStepperZ: the stepper position used for homing (existing behavior)
+Delta: ChosenStatistic - FinalStepperZ (mm) — reveals bias from nozzle contamination
+Reason: short reason text (e.g., "consecutive windows ok", "range-history stable", "max probes reached")
+Example: M1128: PASS chosen=0.12345 stepper=0.12330 delta=0.00015 reason="range-history stable"
+Actionable Advice: when FAIL or when Delta > configurable threshold, add one-line advice:
+e.g., "FAIL: Nozzle contamination suspected — please clean nozzle and retry" or "Large delta: consider manual cleaning"
+Verbose / Level Control: use the existing verbose_level parameter or add a V runtime parameter to control detail:
+V0 (default): only summary PASS/FAIL + measured range
+V1: per-attempt brief lines (no raw triggers)
+V2: raw triggers and full window/range history
+Machine-Readable Output:
+Add an optional single-line JSON or CSV summary for automated parsing:
+M1128:JSON: {"status":"PASS","chosen":0.123,"stepper":0.123,"delta":0.0001,"samples":[...],"ranges":[...]}
+This helps test automation and logs.
+Optional SD/Log Dump:
+If SD card present, optionally save a CSV log with timestamped attempt rows for later analysis.
+Config & Safety Options:
+Add compile-time or runtime options:
+threshold for delta that triggers warning/FAIL (e.g., stable_z_home_delta_warn)
+toggle to adopt chosen_statistic as canonical home instead of stepper position
+ability to abort early if a single trigger range is > X (sensor failure)
+Unit/Test Hooks:
+Ensure stable_z_window_is_stable() continues to be testable; add unit tests that simulate trigger patterns and validate PASS/FAIL and mean outputs.

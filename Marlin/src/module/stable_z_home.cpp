@@ -4,19 +4,27 @@
  */
 #include "stable_z_home.h"
 
-#if ENABLED(STABLE_Z_HOME)
+ #if ENABLED(STABLE_Z_HOME)
 uint16_t stable_z_home_max_probes       = STABLE_Z_HOME_MAX_PROBES;
 uint8_t  stable_z_home_window_size      = STABLE_Z_HOME_WINDOW_SIZE;
-float    stable_z_home_retry_tolerance  = STABLE_Z_HOME_RETRY_TOLERANCE;
+// Some build configurations may not define STABLE_Z_HOME_RANGE_TOLERANCE
+#ifndef STABLE_Z_HOME_RANGE_TOLERANCE
+#define STABLE_Z_HOME_RANGE_TOLERANCE 0.01f
+#endif
+float    stable_z_home_range_tolerance  = STABLE_Z_HOME_RANGE_TOLERANCE;
+// Some build configurations may not define STABLE_Z_HOME_MAX_Z_SHIFT
+#ifndef STABLE_Z_HOME_MAX_Z_SHIFT
+#define STABLE_Z_HOME_MAX_Z_SHIFT 0.06f
+#endif
+float    stable_z_home_max_z_shift     = STABLE_Z_HOME_MAX_Z_SHIFT;
 
 void stable_z_home_defaults() {
   stable_z_home_max_probes      = STABLE_Z_HOME_MAX_PROBES;
   stable_z_home_window_size     = STABLE_Z_HOME_WINDOW_SIZE;
-  stable_z_home_retry_tolerance = STABLE_Z_HOME_RETRY_TOLERANCE;
+  stable_z_home_range_tolerance = STABLE_Z_HOME_RANGE_TOLERANCE;
+  stable_z_home_max_z_shift     = STABLE_Z_HOME_MAX_Z_SHIFT;
 }
-#endif
 
-#if ENABLED(STABLE_Z_HOME)
 bool stable_z_window_is_stable(const float *samples, uint16_t cap, uint16_t idx, uint16_t collected, uint8_t window_size, float tol, float &mean_out) {
   // Not enough samples collected to form a window
   if (collected < window_size) return false;
@@ -37,5 +45,4 @@ bool stable_z_window_is_stable(const float *samples, uint16_t cap, uint16_t idx,
   }
   return false;
 }
-#endif
 #endif

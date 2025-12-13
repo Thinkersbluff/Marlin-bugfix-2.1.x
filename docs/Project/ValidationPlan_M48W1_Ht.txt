@@ -1,0 +1,46 @@
+Here’s a concise, practical validation plan to exercise the new M48 history (W1/H) and set you up for using it as a probe capability reference for M1128.
+
+Prep
+
+Level/clean bed and nozzle; set Z offset via your usual paper test (keep this independent of M48 so you aren’t biasing results to a noisy probe).
+Use the same XY point for all runs; pick a center-ish, easily reachable spot. Disable mesh/leveling during M48.
+M48 run recipe (per run)
+
+Command: M48 P10 V2 E1 L0 (10 samples, moderate verbosity, engage probe each time, no legs). If you want a mild stress, use L2 (two legs) but keep it consistent across runs.
+Save to history: add W1 on the runs you want recorded (e.g., M48 P10 V2 E1 L0 W1).
+After each save, verify with M48 H that the entry count increments and the latest entry appears.
+Fill the 8-entry history
+
+Do 6–8 back-to-back runs to establish a baseline distribution (all with the same params). Let the probe cool briefly between runs (30–60s) to avoid thermal drift.
+After the 8th, run a 9th with W1 to confirm wrap-around (count stays 8, oldest is evicted). Check M48 H to see idx advanced correctly.
+Power-cycle, then M48 H again to confirm persistence.
+Before running M1128
+
+Ensure you have at least 5–6 good baseline entries in history (ideally 8). This gives you a reasonable median/variance reference.
+Keep probe.offset.z from the paper test unless you later decide to tune it; don’t derive it from M48—M48 is for capability characterization, not Z-offset setting.
+Using M48 history to set thresholds
+
+For the saved history, compute:
+sigma_median = median of sigma_trigger across entries.
+range_median = median of measured_range across entries.
+Recommended guards for M1128 outcomes (pass/fail heuristics):
+Range guard: flag if M1128 measured_range > range_median + max(0.010, 3 * sigma_median).
+Shift guard (already in M1128): allowed shift = max(3 * tol, stable_z_home_max_z_shift). If you want to tie this to history, set stable_z_home_max_z_shift to max(0.050, 3 * sigma_median).
+Don’t round internally; store and compare with full precision. For operator display, print to 3 decimals.
+Degradation checks (ongoing use)
+
+Each maintenance check: run 2× M48 P10 V2 E1 L0 W1 and view M48 H.
+Flag maintenance if either:
+Latest sigma_trigger > sigma_median * 1.5 or > sigma_median + 0.010, or
+Latest measured_range > range_median + 0.020, or
+Either metric exceeds baseline median by > 3 × baseline MAD (robust sigma proxy if you prefer).
+If flagged, clean probe/nozzle, re-paper-test Z offset, rerun two M48 saves; if still high, investigate mechanics/backlash.
+Minimal operator flow to validate W1/H
+
+Run M48 P10 V2 E1 L0 W1 → run completes and reports “saved”.
+M48 H → shows count=1 with mean/sigma/range.
+Repeat step 1 five more times (total 6 entries), then M48 H → count increments, ordering correct.
+Do 3 more saves (total 9) to confirm wrap → M48 H shows count=8 and oldest entry gone.
+Power cycle, M48 H → history intact.
+Run M1128; compare its measured_range and mean shift vs the thresholds above.
+If you want a slightly tighter capability reference, bump to P15 instead of P10; keep V2 and E1, and still avoid legs unless you’re explicitly stress-testing.
